@@ -19,6 +19,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Sockets;
+using System.Net.Security;
+using System.Security.Cryptography.X509Certificates;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.IO;
@@ -35,6 +37,7 @@ class IRCClient {
 
 	private string hostname;
 	private int port;
+    private bool secure;
 	private string user;
 	private string serverPassword;
 	private string nickname;
@@ -46,14 +49,37 @@ class IRCClient {
 	private bool connected;
 	private long lastServerPing = DateTime.UtcNow.Ticks / 10000;
 
-	public void connect(string hostname, int port, string user, string serverPassword, string nickname) {
+	public void connect(string hostname, 
+                        int port, 
+                        bool secure,
+                        string user,
+                        string serverPassword, 
+                        string nickname) {
 		this.hostname = hostname;
 		this.port = port;
+        this.secure = secure;
 		this.user = user;
 		this.serverPassword = serverPassword;
 		this.nickname = nickname;
 		connect();
 	}
+
+    public static bool PermissiveCertificateValidationCallback(object sender,
+                                                 X509Certificate certificate,
+                                                 X509Chain chain,
+                                                 SslPolicyErrors sslPolicyErrors)
+    {
+        if (sslPolicyErrors == SslPolicyErrors.None)
+        {
+            Debug.Log("Certificate all good");
+            return true;
+        }
+
+        Debug.LogError("Certificate error: [" + sslPolicyErrors + "]");
+
+        // Do not allow this client to communicate with unauthenticated servers. 
+        return false;
+    }
 
 	private void connect() {
 		doDisconnect();
@@ -66,6 +92,14 @@ class IRCClient {
 			client = new TcpClient();
 			client.Connect(hostname, port);
 			stream = client.GetStream();
+            //if (secure)
+            //{
+            //    SslStream sslStream = new SslStream(stream, 
+            //                                        false, 
+            //                                        new RemoteCertificateValidationCallback (PermissiveCertificateValidationCallback), null);
+            //    sslStream.AuthenticateAsClient(hostname);
+            //    stream = sslStream;
+            //}
 
 			if ((serverPassword != null) && (serverPassword != "")) {
 				send(new IRCCommand(null, "PASS", serverPassword));
@@ -132,13 +166,21 @@ class IRCClient {
 		if (connected) {
 			try {
 				if (stream.CanRead) {
-					while (stream.DataAvailable) {
-						int numBytes = stream.Read(buffer, 0, buffer.Length);
-						string text = Encoding.UTF8.GetString(buffer, 0, numBytes);
-						textBuffer.Append(text);
-					}
+                    //while (stream.DataAvailable)
+                    //{
+                    //    int numBytes = stream.Read(buffer, 0, buffer.Length);
+                    //    string text = Encoding.UTF8.GetString(buffer, 0, numBytes);
+                    //    textBuffer.Append(text);
+                    //}
+                    while (client.Available > 0)
+                    {
+                        int numBytes = stream.Read(buffer, 0, buffer.Length);
+                        string text = Encoding.UTF8.GetString(buffer, 0, numBytes);
+                        textBuffer.Append(text);
+                    }
 				}
-			} catch (SocketException) {
+			} catch (SocketException ex) {
+                Debug.LogException(ex);
 				reconnect();
 			}
 
@@ -180,10 +222,12 @@ class IRCClient {
 		byte[] data = Encoding.UTF8.GetBytes(cmd.ToString() + "\r\n");
 		try {
 			stream.Write(data, 0, data.Length);
-		} catch (SocketException) {
-			reconnect();
-		} catch (IOException) {
-			reconnect();
+		} catch (SocketException ex) {
+            Debug.LogException(ex);
+            reconnect();
+		} catch (IOException ex) {
+            Debug.LogException(ex);
+            reconnect();
 		}
 	}
 
@@ -194,10 +238,12 @@ class IRCClient {
 		byte[] data = Encoding.UTF8.GetBytes(cmdAndParams + "\r\n");
 		try {
 			stream.Write(data, 0, data.Length);
-		} catch (SocketException) {
-			reconnect();
-		} catch (IOException) {
-			reconnect();
+		} catch (SocketException ex) {
+            Debug.LogException(ex);
+            reconnect();
+		} catch (IOException ex) {
+            Debug.LogException(ex);
+            reconnect();
 		}
 	}
 }

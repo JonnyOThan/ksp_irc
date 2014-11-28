@@ -77,7 +77,7 @@ abstract class AbstractWindow {
 		mousePos.y = Screen.height - mousePos.y;
 		Rect windowHandle = new Rect(rect.x + rect.width - 8, rect.y + rect.height - 8, 8, 8);
 		if (windowHandle.Contains(mousePos)) {
-			Texture2D cursorTex = GameDatabase.Instance.GetTexture("blizzy/KSPIRC/resize-cursor", false);
+			Texture2D cursorTex = GameDatabase.Instance.GetTexture("KSPIRC/resize-cursor", false);
 			Cursor.SetCursor(cursorTex, new Vector2(7, 7), CursorMode.ForceSoftware);
 			if (!resizeHandleMouseDown && Input.GetMouseButtonDown(0)) {
 				resizeHandleMouseDown = true;

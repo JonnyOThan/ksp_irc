@@ -48,10 +48,11 @@ class KSPIRC : MonoBehaviour {
 	KSPIRC() {
 		GameObject.DontDestroyOnLoad(this);
 
-		string settingsFile = KSPUtil.ApplicationRootPath + "GameData/blizzy/KSPIRC/irc.cfg";
+		string settingsFile = KSPUtil.ApplicationRootPath + "GameData/KSPIRC/irc.cfg";
 		ConfigNode settings = ConfigNode.Load(settingsFile) ?? new ConfigNode();
 		string host = settings.HasValue("host") ? settings.GetValue("host") : null;
 		int port = settings.HasValue("port") ? int.Parse(settings.GetValue("port")) : -1;
+        bool secure = settings.HasValue("secure") ? bool.Parse(settings.GetValue("secure")) : false;
 		string user = settings.HasValue("user") ? settings.GetValue("user") : null;
 		string serverPassword = settings.HasValue("serverPassword") ? settings.GetValue("serverPassword") : null;
 		string nick = settings.HasValue("nick") ? settings.GetValue("nick") : "";
@@ -73,16 +74,26 @@ class KSPIRC : MonoBehaviour {
 		client.onDisconnected += () => ircWindow.addToChannel(NOTICE_CHANNEL_HANDLE, "*", "Disconnected from server.");
 
 		if ((host != null) && (port > 0) && (nick != "")) {
-			client.connect(host, port, user, serverPassword, nick);
+            Debug.Log("Connecting to: " + host + ":" + port);
+			client.connect(host, port, secure, user, serverPassword, nick);
 		} else {
 			ircWindow.addToChannel("IRC Plugin", "*", "IRC plugin not configured, not connecting to IRC server.");
 			ircWindow.addToChannel("IRC Plugin", "*", "Edit irc.cfg and restart KSP.");
 		}
 
 		windowButton = ToolbarManager.Instance.add("irc", "irc");
-		windowButton.TexturePath = "blizzy/KSPIRC/button-regular";
+		windowButton.TexturePath = "KSPIRC/button-regular";
 		windowButton.ToolTip = "IRC";
-		windowButton.Visibility = new GameScenesVisibility(GameScenes.EDITOR, GameScenes.FLIGHT, GameScenes.SPH, GameScenes.TRACKSTATION);
+		windowButton.Visibility = new GameScenesVisibility(GameScenes.CREDITS,
+                                                           GameScenes.EDITOR, 
+                                                           GameScenes.FLIGHT,
+                                                           GameScenes.LOADING,
+                                                           GameScenes.LOADINGBUFFER,
+                                                           GameScenes.MAINMENU,
+                                                           GameScenes.PSYSTEM,
+                                                           GameScenes.SPACECENTER,
+                                                           GameScenes.SPH, 
+                                                           GameScenes.TRACKSTATION);
 		windowButton.OnClick += (e) => toggleIRCWindow();
 
 		versionWWW = new WWW("http://blizzy.de/kspirc/version.txt");
@@ -101,15 +112,15 @@ class KSPIRC : MonoBehaviour {
 		}
 
 		if (ircWindow.hidden && (ircWindow.anyChannelsHighlightedPrivateMessage || showNewVersionOnButton)) {
-			windowButton.TexturePath = "blizzy/KSPIRC/button-pm";
+			windowButton.TexturePath = "KSPIRC/button-pm";
 			windowButton.Important = true;
 		} else {
 			if (ircWindow.hidden && ircWindow.anyChannelsHighlightedMessage) {
-				windowButton.TexturePath = "blizzy/KSPIRC/button-message";
+				windowButton.TexturePath = "KSPIRC/button-message";
 			} else if (ircWindow.hidden && ircWindow.anyChannelsHighlightedJoin) {
-				windowButton.TexturePath = "blizzy/KSPIRC/button-join";
+				windowButton.TexturePath = "KSPIRC/button-join";
 			} else {
-				windowButton.TexturePath = "blizzy/KSPIRC/button-regular";
+				windowButton.TexturePath = "KSPIRC/button-regular";
 			}
 			windowButton.Important = false;
 		}
