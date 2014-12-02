@@ -50,22 +50,24 @@
   <ItemGroup>
     <Compile Include="AbstractWindow.cs" />
     <Compile Include="ChannelGUI.cs" />
+    <Compile Include="ShowConfigEvent.cs" />
     <Compile Include="CTCPCommand.cs" />
     <Compile Include="Extensions.cs" />
     <Compile Include="IRCCommand.cs" />
     <Compile Include="IRCClient.cs" />
-    <Compile Include="IRCWindow.cs" />
+    <Compile Include="IRCConfig.cs" />
+    <Compile Include="IRCConfigWindow.cs" />
+    <Compile Include="IRCChatWindow.cs" />
     <Compile Include="IRCCommandEvent.cs" />
+    <Compile Include="ConfigChangedEvent.cs" />
     <Compile Include="UserCommandEvent.cs" />
-    <Compile Include="KSPAddonFixed.cs" />
+    <Compile Include="KSPIRCKSPAddonFixed.cs" />
     <Compile Include="KSPIRC.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="UserCommand.cs" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="CHANGES.txt" />
-    <Content Include="etc\screenshot.png" />
-    <Content Include="etc\screenshot_spaceport.png" />
     <Content Include="LICENSE.txt" />
   </ItemGroup>
   <ItemGroup>
@@ -74,6 +76,7 @@
     <None Include="etc\button-pm.tga" />
     <None Include="etc\button-regular.tga" />
     <None Include="etc\button.psd" />
+    <None Include="etc\KSPIRC.version" />
     <None Include="etc\resize-cursor.tga" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

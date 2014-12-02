@@ -17,18 +17,17 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 using System;
 
-
 namespace KSPIRC
 {
-    delegate void IRCCommandHandler(IRCCommandEvent e);
+    delegate void ConfigChangedHandler(ConfigChangedEvent e);
 
-    class IRCCommandEvent : EventArgs
+    class ConfigChangedEvent : EventArgs
     {
-        public readonly IRCCommand command;
+        public readonly IRCConfig config;
 
-        public IRCCommandEvent(IRCCommand command)
+        public ConfigChangedEvent(IRCConfig config)
         {
-            this.command = command;
+            this.config = config;
         }
     }
 }

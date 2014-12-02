@@ -20,14 +20,19 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-class CTCPCommand : IRCCommand {
-	public readonly string ctcpCommand;
-	public readonly string ctcpParameters;
+namespace KSPIRC
+{
+    class CTCPCommand : IRCCommand
+    {
+        public readonly string ctcpCommand;
+        public readonly string ctcpParameters;
 
-	public CTCPCommand(string prefix, string handle, string ctcpCommand, string ctcpParameters) :
-		base(prefix, "PRIVMSG", handle, "\u0001" + ctcpCommand + ((ctcpParameters != null) ? " " + ctcpParameters : "") + "\u0001") {
+        public CTCPCommand(string prefix, string handle, string ctcpCommand, string ctcpParameters) :
+            base(prefix, "PRIVMSG", handle, "\u0001" + ctcpCommand + ((ctcpParameters != null) ? " " + ctcpParameters : "") + "\u0001")
+        {
 
-		this.ctcpCommand = ctcpCommand;
-		this.ctcpParameters = ctcpParameters;
-	}
+            this.ctcpCommand = ctcpCommand;
+            this.ctcpParameters = ctcpParameters;
+        }
+    }
 }

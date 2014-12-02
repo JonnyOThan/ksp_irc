@@ -20,9 +20,14 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-static class Extensions {
-	public static StringBuilder Clear(this StringBuilder sb) {
-		sb.Length = 0;
-		return sb;
-	}
+namespace KSPIRC
+{
+    static class Extensions
+    {
+        public static StringBuilder Clear(this StringBuilder sb)
+        {
+            sb.Length = 0;
+            return sb;
+        }
+    }
 }

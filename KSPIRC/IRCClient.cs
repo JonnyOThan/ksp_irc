@@ -26,224 +26,266 @@ using System.Text;
 using System.IO;
 using UnityEngine;
 
-class IRCClient {
-	private const long SERVER_PING_INTERVAL = 30000;
-
-	public event IRCCommandHandler onCommandReceived;
-	public event IRCCommandHandler onCommandSent;
-	public event Callback onConnect;
-	public event Callback onConnected;
-	public event Callback onDisconnected;
-
-	private string hostname;
-	private int port;
-    private bool secure;
-	private string user;
-	private string serverPassword;
-	private string nickname;
-	private TcpClient client;
-	private NetworkStream stream;
-	private byte[] buffer = new byte[10240];
-	private StringBuilder textBuffer = new StringBuilder();
-	private bool tryReconnect = true;
-	private bool connected;
-	private long lastServerPing = DateTime.UtcNow.Ticks / 10000;
-
-	public void connect(string hostname, 
-                        int port, 
-                        bool secure,
-                        string user,
-                        string serverPassword, 
-                        string nickname) {
-		this.hostname = hostname;
-		this.port = port;
-        this.secure = secure;
-		this.user = user;
-		this.serverPassword = serverPassword;
-		this.nickname = nickname;
-		connect();
-	}
-
-    public static bool PermissiveCertificateValidationCallback(object sender,
-                                                 X509Certificate certificate,
-                                                 X509Chain chain,
-                                                 SslPolicyErrors sslPolicyErrors)
+namespace KSPIRC
+{
+    class IRCClient
     {
-        if (sslPolicyErrors == SslPolicyErrors.None)
+        private const long SERVER_PING_INTERVAL = 30000;
+
+        public event IRCCommandHandler onCommandReceived;
+        public event IRCCommandHandler onCommandSent;
+        public event Callback onConnect;
+        public event Callback onConnected;
+        public event Callback onDisconnected;
+
+        private IRCConfig config;
+
+        private TcpClient client;
+        private NetworkStream stream;
+        private byte[] buffer = new byte[10240];
+        private StringBuilder textBuffer = new StringBuilder();
+        private bool tryReconnect = true;
+        private bool connected;
+        private long lastServerPing = DateTime.UtcNow.Ticks / 10000;
+
+        public void connect(IRCConfig config)
         {
-            Debug.Log("Certificate all good");
-            return true;
+            this.config = config;
+            connect();
         }
 
-        Debug.LogError("Certificate error: [" + sslPolicyErrors + "]");
+        public static bool PermissiveCertificateValidationCallback(object sender,
+                                                     X509Certificate certificate,
+                                                     X509Chain chain,
+                                                     SslPolicyErrors sslPolicyErrors)
+        {
+            if (sslPolicyErrors == SslPolicyErrors.None)
+            {
+                Debug.Log("Certificate all good");
+                return true;
+            }
 
-        // Do not allow this client to communicate with unauthenticated servers. 
-        return false;
-    }
+            Debug.LogError("Certificate error: [" + sslPolicyErrors + "]");
 
-	private void connect() {
-		doDisconnect();
+            // Do not allow this client to communicate with unauthenticated servers. 
+            return false;
+        }
 
-		if (onConnect != null) {
-			onConnect();
-		}
+        private void connect()
+        {
+            doDisconnect();
 
-		try {
-			client = new TcpClient();
-			client.Connect(hostname, port);
-			stream = client.GetStream();
-            //if (secure)
-            //{
-            //    SslStream sslStream = new SslStream(stream, 
-            //                                        false, 
-            //                                        new RemoteCertificateValidationCallback (PermissiveCertificateValidationCallback), null);
-            //    sslStream.AuthenticateAsClient(hostname);
-            //    stream = sslStream;
-            //}
+            if (onConnect != null)
+            {
+                onConnect();
+            }
 
-			if ((serverPassword != null) && (serverPassword != "")) {
-				send(new IRCCommand(null, "PASS", serverPassword));
-			}
-			send(new IRCCommand(null, "NICK", nickname));
-			send(new IRCCommand(null, "USER", user ?? nickname, "8", "*", nickname));
+            try
+            {
+                client = new TcpClient();
+                client.Connect(config.host, config.port);
+                stream = client.GetStream();
+                //if (secure)
+                //{
+                //    SslStream sslStream = new SslStream(stream, 
+                //                                        false, 
+                //                                        new RemoteCertificateValidationCallback (PermissiveCertificateValidationCallback), null);
+                //    sslStream.AuthenticateAsClient(hostname);
+                //    stream = sslStream;
+                //}
 
-			connected = true;
+                if ((config.serverPassword != null) && (config.serverPassword != ""))
+                {
+                    send(new IRCCommand(null, "PASS", config.serverPassword));
+                }
+                send(new IRCCommand(null, "NICK", config.nick));
+                send(new IRCCommand(null, "USER", (String.IsNullOrEmpty(config.user) ? config.nick : config.user), "8", "*", config.nick));
 
-			if (onConnected != null) {
-				onConnected();
-			}
-		} catch (Exception e) {
-			Debug.LogException(e);
-		}
-	}
+                connected = true;
 
-	public void disconnect() {
-		tryReconnect = false;
-		doDisconnect();
-	}
+                if (onConnected != null)
+                {
+                    onConnected();
+                }
+            }
+            catch (Exception e)
+            {
+                Debug.LogException(e);
+            }
+        }
 
-	private void doDisconnect() {
-		bool wasConnected = connected;
+        public void disconnect()
+        {
+            tryReconnect = false;
+            doDisconnect();
+        }
 
-		if (stream != null) {
-			try {
-				send(new IRCCommand(null, "QUIT", "Build. Fly. Dream."));
-			} catch {
-				// ignore
-			}
-		}
+        private void doDisconnect()
+        {
+            bool wasConnected = connected;
 
-		if (stream != null) {
-			stream.Close();
-			stream = null;
-		}
-		if (client != null) {
-			client.Close();
-			client = null;
-		}
+            if (stream != null)
+            {
+                try
+                {
+                    send(new IRCCommand(null, "QUIT", "Build. Fly. Dream."));
+                }
+                catch
+                {
+                    // ignore
+                }
+            }
 
-		connected = false;
-		textBuffer.Clear();
+            if (stream != null)
+            {
+                stream.Close();
+                stream = null;
+            }
+            if (client != null)
+            {
+                client.Close();
+                client = null;
+            }
 
-		if (wasConnected && (onDisconnected != null)) {
-			onDisconnected();
-		}
-	}
+            connected = false;
+            textBuffer.Clear();
 
-	private void reconnect() {
-		if (tryReconnect && connected) {
-			try {
-				tryReconnect = false;
-				doDisconnect();
-				connect();
-			} finally {
-				tryReconnect = true;
-			}
-		}
-	}
+            if (wasConnected && (onDisconnected != null))
+            {
+                onDisconnected();
+            }
+        }
 
-	public void update() {
-		if (connected) {
-			try {
-				if (stream.CanRead) {
-                    //while (stream.DataAvailable)
-                    //{
-                    //    int numBytes = stream.Read(buffer, 0, buffer.Length);
-                    //    string text = Encoding.UTF8.GetString(buffer, 0, numBytes);
-                    //    textBuffer.Append(text);
-                    //}
-                    while (client.Available > 0)
+        private void reconnect()
+        {
+            if (tryReconnect && connected)
+            {
+                try
+                {
+                    tryReconnect = false;
+                    doDisconnect();
+                    connect();
+                }
+                finally
+                {
+                    tryReconnect = true;
+                }
+            }
+        }
+
+        public void update()
+        {
+            if (connected)
+            {
+                try
+                {
+                    if (stream.CanRead)
                     {
-                        int numBytes = stream.Read(buffer, 0, buffer.Length);
-                        string text = Encoding.UTF8.GetString(buffer, 0, numBytes);
-                        textBuffer.Append(text);
+                        //while (stream.DataAvailable)
+                        //{
+                        //    int numBytes = stream.Read(buffer, 0, buffer.Length);
+                        //    string text = Encoding.UTF8.GetString(buffer, 0, numBytes);
+                        //    textBuffer.Append(text);
+                        //}
+                        while (client.Available > 0)
+                        {
+                            int numBytes = stream.Read(buffer, 0, buffer.Length);
+                            string text = Encoding.UTF8.GetString(buffer, 0, numBytes);
+                            textBuffer.Append(text);
+                        }
                     }
-				}
-			} catch (SocketException ex) {
+                }
+                catch (SocketException ex)
+                {
+                    Debug.LogException(ex);
+                    reconnect();
+                }
+
+                if (textBuffer.Length > 0)
+                {
+                    for (; ; )
+                    {
+                        int pos = textBuffer.ToString().IndexOf("\r\n");
+                        if (pos >= 0)
+                        {
+                            string line = textBuffer.ToString().Substring(0, pos);
+                            textBuffer.Remove(0, pos + 2);
+
+                            if (onCommandReceived != null)
+                            {
+                                try
+                                {
+                                    IRCCommand cmd = IRCCommand.fromLine(line);
+                                    onCommandReceived(new IRCCommandEvent(cmd));
+                                }
+                                catch (ArgumentException e)
+                                {
+                                    Debug.LogException(e);
+                                }
+                            }
+                        }
+                        else
+                        {
+                            break;
+                        }
+                    }
+                }
+
+                // send something to socket to potentially trigger SocketException elsewhere when reading
+                // off the socket
+                long now = DateTime.UtcNow.Ticks / 10000;
+                if ((now - lastServerPing) >= SERVER_PING_INTERVAL)
+                {
+                    lastServerPing = now;
+                    send("PING :" + now);
+                }
+            }
+        }
+
+        public void send(IRCCommand cmd)
+        {
+            if (onCommandSent != null)
+            {
+                onCommandSent(new IRCCommandEvent(cmd));
+            }
+            byte[] data = Encoding.UTF8.GetBytes(cmd.ToString() + "\r\n");
+            try
+            {
+                stream.Write(data, 0, data.Length);
+            }
+            catch (SocketException ex)
+            {
                 Debug.LogException(ex);
-				reconnect();
-			}
+                reconnect();
+            }
+            catch (IOException ex)
+            {
+                Debug.LogException(ex);
+                reconnect();
+            }
+        }
 
-			if (textBuffer.Length > 0) {
-				for (;;) {
-					int pos = textBuffer.ToString().IndexOf("\r\n");
-					if (pos >= 0) {
-						string line = textBuffer.ToString().Substring(0, pos);
-						textBuffer.Remove(0, pos + 2);
-
-						if (onCommandReceived != null) {
-							try {
-								IRCCommand cmd = IRCCommand.fromLine(line);
-								onCommandReceived(new IRCCommandEvent(cmd));
-							} catch (ArgumentException e) {
-								Debug.LogException(e);
-							}
-						}
-					} else {
-						break;
-					}
-				}
-			}
-
-			// send something to socket to potentially trigger SocketException elsewhere when reading
-			// off the socket
-			long now = DateTime.UtcNow.Ticks / 10000;
-			if ((now - lastServerPing) >= SERVER_PING_INTERVAL) {
-				lastServerPing = now;
-				send("PING :" + now);
-			}
-		}
-	}
-
-	public void send(IRCCommand cmd) {
-		if (onCommandSent != null) {
-			onCommandSent(new IRCCommandEvent(cmd));
-		}
-		byte[] data = Encoding.UTF8.GetBytes(cmd.ToString() + "\r\n");
-		try {
-			stream.Write(data, 0, data.Length);
-		} catch (SocketException ex) {
-            Debug.LogException(ex);
-            reconnect();
-		} catch (IOException ex) {
-            Debug.LogException(ex);
-            reconnect();
-		}
-	}
-
-	public void send(string cmdAndParams) {
-		if (onCommandSent != null) {
-			onCommandSent(new IRCCommandEvent(IRCCommand.fromLine(cmdAndParams)));
-		}
-		byte[] data = Encoding.UTF8.GetBytes(cmdAndParams + "\r\n");
-		try {
-			stream.Write(data, 0, data.Length);
-		} catch (SocketException ex) {
-            Debug.LogException(ex);
-            reconnect();
-		} catch (IOException ex) {
-            Debug.LogException(ex);
-            reconnect();
-		}
-	}
+        public void send(string cmdAndParams)
+        {
+            if (onCommandSent != null)
+            {
+                onCommandSent(new IRCCommandEvent(IRCCommand.fromLine(cmdAndParams)));
+            }
+            byte[] data = Encoding.UTF8.GetBytes(cmdAndParams + "\r\n");
+            try
+            {
+                stream.Write(data, 0, data.Length);
+            }
+            catch (SocketException ex)
+            {
+                Debug.LogException(ex);
+                reconnect();
+            }
+            catch (IOException ex)
+            {
+                Debug.LogException(ex);
+                reconnect();
+            }
+        }
+    }
 }

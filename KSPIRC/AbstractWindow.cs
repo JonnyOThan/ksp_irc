@@ -21,99 +21,126 @@ using System.Linq;
 using System.Text;
 using UnityEngine;
 
-abstract class AbstractWindow {
-	public event WindowResizedHandler onResized;
+namespace KSPIRC
+{
+    abstract class AbstractWindow
+    {
+        public event WindowResizedHandler onResized;
 
-	public event WindowVisibleToggledHandler onVisibleToggled;
+        public event WindowVisibleToggledHandler onVisibleToggled;
 
-	private bool hidden_;
-	public bool hidden {
-		get {
-			return hidden_;
-		}
+        private bool hidden_;
+        public bool hidden
+        {
+            get
+            {
+                return hidden_;
+            }
 
-		set {
-			if (value != hidden_) {
-				hidden_ = value;
-				if (onVisibleToggled != null) {
-					onVisibleToggled(new WindowVisibleToggledEvent(!value));
-				}
-			}
-		}
-	}
+            set
+            {
+                if (value != hidden_)
+                {
+                    hidden_ = value;
+                    if (onVisibleToggled != null)
+                    {
+                        onVisibleToggled(new WindowVisibleToggledEvent(!value));
+                    }
+                }
+            }
+        }
 
-	public Rect rect = new Rect(Screen.width / 4, Screen.height / 4, Screen.width / 2, Screen.height / 2);
-	public string title = "";
-	public bool resizable = true;
-	public bool draggable = true;
-	public readonly int id = new System.Random().Next(int.MaxValue);
+        public Rect rect = new Rect(Screen.width / 4, Screen.height / 4, Screen.width / 2, Screen.height / 2);
+        public string title = "";
+        public bool resizable = true;
+        public bool draggable = true;
+        public readonly int id = UnityEngine.Random.Range(1000, 2000000);
 
-	private bool resizeHandleMouseDown;
-	private Vector3 mouseDownPos;
-	private Rect resizeOrigRect;
+        private bool resizeHandleMouseDown;
+        private Vector3 mouseDownPos;
+        private Rect resizeOrigRect;
 
-	public virtual void draw() {
-		if (!hidden) {
-			rect = GUILayout.Window(id, rect, drawContents, title);
-		}
-	}
+        public virtual void draw()
+        {
+            if (!hidden)
+            {
+                rect = GUILayout.Window(id, rect, drawContents, title);
+            }
+        }
 
-	private void drawContents(int id) {
-		drawContents();
+        private void drawContents(int id)
+        {
+            drawContents();
 
-		bool inResizeHandle = false;
-		if (resizable) {
-			inResizeHandle = resizeWindow();
-		}
-		if (draggable && !inResizeHandle) {
-			GUI.DragWindow();
-		}
-	}
+            bool inResizeHandle = false;
+            if (resizable)
+            {
+                inResizeHandle = resizeWindow();
+            }
+            if (draggable && !inResizeHandle)
+            {
+                GUI.DragWindow();
+            }
+        }
 
-	protected abstract void drawContents();
+        protected abstract void drawContents();
 
-	private bool resizeWindow() {
-		Vector3 mousePos = Input.mousePosition;
-		mousePos.y = Screen.height - mousePos.y;
-		Rect windowHandle = new Rect(rect.x + rect.width - 8, rect.y + rect.height - 8, 8, 8);
-		if (windowHandle.Contains(mousePos)) {
-			Texture2D cursorTex = GameDatabase.Instance.GetTexture("KSPIRC/resize-cursor", false);
-			Cursor.SetCursor(cursorTex, new Vector2(7, 7), CursorMode.ForceSoftware);
-			if (!resizeHandleMouseDown && Input.GetMouseButtonDown(0)) {
-				resizeHandleMouseDown = true;
-				mouseDownPos = mousePos;
-				resizeOrigRect = rect;
-			}
-		} else {
-			Cursor.SetCursor(null, Vector2.zero, CursorMode.Auto);
-		}
+        private bool resizeWindow()
+        {
+            Vector3 mousePos = Input.mousePosition;
+            mousePos.y = Screen.height - mousePos.y;
+            Rect windowHandle = new Rect(rect.x + rect.width - 8, rect.y + rect.height - 8, 8, 8);
+            if (windowHandle.Contains(mousePos))
+            {
+                Texture2D cursorTex = GameDatabase.Instance.GetTexture("KSPIRC/resize-cursor", false);
+                Cursor.SetCursor(cursorTex, new Vector2(7, 7), CursorMode.ForceSoftware);
+                if (!resizeHandleMouseDown && Input.GetMouseButtonDown(0))
+                {
+                    resizeHandleMouseDown = true;
+                    mouseDownPos = mousePos;
+                    resizeOrigRect = rect;
+                }
+            }
+            else
+            {
+                Cursor.SetCursor(null, Vector2.zero, CursorMode.Auto);
+            }
 
-		if (resizeHandleMouseDown) {
-			if (Input.GetMouseButtonUp(0)) {
-				resizeHandleMouseDown = false;
-			} else {
-				rect.width = Mathf.Clamp(resizeOrigRect.width + (mousePos.x - mouseDownPos.x), 50, Screen.width);
-				rect.height = Mathf.Clamp(resizeOrigRect.height + (mousePos.y - mouseDownPos.y), 50, Screen.height);
-				if (onResized != null) {
-					onResized();
-				}
-			}
-		}
+            if (resizeHandleMouseDown)
+            {
+                if (Input.GetMouseButtonUp(0))
+                {
+                    resizeHandleMouseDown = false;
+                }
+                else
+                {
+                    rect.width = Mathf.Clamp(resizeOrigRect.width + (mousePos.x - mouseDownPos.x), 50, Screen.width);
+                    rect.height = Mathf.Clamp(resizeOrigRect.height + (mousePos.y - mouseDownPos.y), 50, Screen.height);
+                    if (onResized != null)
+                    {
+                        onResized();
+                    }
+                }
+            }
 
-		return resizeHandleMouseDown;
-	}
+            return resizeHandleMouseDown;
+        }
 
-	public virtual void update() {
-	}
-}
+        public virtual void update()
+        {
+        }
+    }
 
-delegate void WindowResizedHandler();
-delegate void WindowVisibleToggledHandler(WindowVisibleToggledEvent e);
+    delegate void WindowResizedHandler();
+    delegate void WindowVisibleToggledHandler(WindowVisibleToggledEvent e);
 
-class WindowVisibleToggledEvent : EventArgs {
-	public readonly bool visible;
+    class WindowVisibleToggledEvent : EventArgs
+    {
+        public readonly bool visible;
 
-	public WindowVisibleToggledEvent(bool visible) {
-		this.visible = visible;
-	}
+        public WindowVisibleToggledEvent(bool visible)
+        {
+            this.visible = visible;
+        }
+    }
 }
