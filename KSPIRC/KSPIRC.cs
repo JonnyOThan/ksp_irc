@@ -26,8 +26,6 @@ using Toolbar;
 [KSPAddonFixed(KSPAddon.Startup.MainMenu, true, typeof(KSPIRC))]
 class KSPIRC : MonoBehaviour {
 	private const string NOTICE_CHANNEL_HANDLE = "(Notice)";
-	private const int VERSION = 9;
-	private const string FULL_VERSION = "0.6.3";
 
 	// debugging
 	private const string DEBUG_CHANNEL_HANDLE = "(Debug)";
@@ -40,13 +38,15 @@ class KSPIRC : MonoBehaviour {
 	private Dictionary<string, UserCommandHandler> userCommandHandlers = new Dictionary<string, UserCommandHandler>();
 	private IRCClient client;
 	private IRCWindow ircWindow;
-	private WWW versionWWW;
+    private string version;
+                    
 	private bool debug;
 	private IButton windowButton;
-	private bool showNewVersionOnButton;
 
 	KSPIRC() {
 		GameObject.DontDestroyOnLoad(this);
+
+        version = this.GetType().Assembly.GetName().Version.ToString();
 
 		string settingsFile = KSPUtil.ApplicationRootPath + "GameData/KSPIRC/irc.cfg";
 		ConfigNode settings = ConfigNode.Load(settingsFile) ?? new ConfigNode();
@@ -58,7 +58,7 @@ class KSPIRC : MonoBehaviour {
 		string nick = settings.HasValue("nick") ? settings.GetValue("nick") : "";
 		debug = settings.HasValue("debug") ? bool.Parse(settings.GetValue("debug")) : false;
 
-		ircWindow = new IRCWindow(nick);
+		ircWindow = new IRCWindow(version, nick);
 		ircWindow.channelClosedEvent += channelClosed;
 		ircWindow.onUserCommandEntered += (e) => handleUserCommand(e.command);
 		ircWindow.hidden = IRC_WINDOW_HIDDEN;
@@ -95,8 +95,6 @@ class KSPIRC : MonoBehaviour {
                                                            GameScenes.SPH, 
                                                            GameScenes.TRACKSTATION);
 		windowButton.OnClick += (e) => toggleIRCWindow();
-
-		versionWWW = new WWW("http://blizzy.de/kspirc/version.txt");
 	}
 
 	public void OnDestroy() {
@@ -111,7 +109,7 @@ class KSPIRC : MonoBehaviour {
 			ircWindow.hidden = true;
 		}
 
-		if (ircWindow.hidden && (ircWindow.anyChannelsHighlightedPrivateMessage || showNewVersionOnButton)) {
+		if (ircWindow.hidden && (ircWindow.anyChannelsHighlightedPrivateMessage)) {
 			windowButton.TexturePath = "KSPIRC/button-pm";
 			windowButton.Important = true;
 		} else {
@@ -130,11 +128,6 @@ class KSPIRC : MonoBehaviour {
 
 	private void toggleIRCWindow() {
 		ircWindow.hidden = !ircWindow.hidden;
-
-		// reset this as soon as the window is opened
-		if (!ircWindow.hidden) {
-			showNewVersionOnButton = false;
-		}
 	}
 
 	#endregion
@@ -142,7 +135,6 @@ class KSPIRC : MonoBehaviour {
 
 	public void Update() {
 		client.update();
-		checkForNewVersion();
 	}
 
 	private void logSendCommand(IRCCommand cmd) {
@@ -157,21 +149,6 @@ class KSPIRC : MonoBehaviour {
 		}
 	}
 
-	private void checkForNewVersion() {
-		if ((ircWindow.newVersionAvailable == null) && String.IsNullOrEmpty(versionWWW.error) && versionWWW.isDone) {
-			try {
-				Debug.Log("version found: " + versionWWW.text);
-				long ver = long.Parse(versionWWW.text);
-				ircWindow.newVersionAvailable = ver > VERSION;
-				if (ircWindow.newVersionAvailable == true) {
-					Debug.Log("new version found");
-					showNewVersionOnButton = true;
-				}
-			} catch (Exception) {
-				// ignore
-			}
-		}
-	}
 
 
 	#region server commands
@@ -224,7 +201,8 @@ class KSPIRC : MonoBehaviour {
 			} else if ((c.ctcpCommand == "VERSION") && !handle.StartsWith("#")) {
 				if (c.ctcpParameters == null) {
 					ircWindow.addToChannel(handle, "*", "VERSION");
-					client.send(new CTCPCommand(null, handle, "VERSION", "Internet Relay Chat Plugin " + FULL_VERSION + " for Kerbal Space Program"));
+
+                    client.send(new CTCPCommand(null, handle, "VERSION", "Internet Relay Chat Plugin " + version + " for Kerbal Space Program"));
 				} else {
 					ircWindow.addToChannel(handle, "*", handle + " uses client: " + c.ctcpParameters);
 				}

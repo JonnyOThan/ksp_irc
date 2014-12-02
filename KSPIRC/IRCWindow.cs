@@ -57,8 +57,6 @@ class IRCWindow : AbstractWindow {
 	public event ChannelClosedHandler channelClosedEvent;
 	public event UserCommandHandler onUserCommandEntered;
 
-	public bool? newVersionAvailable;
-
 	private bool namesHidden_;
 	private bool namesHidden {
 		get {
@@ -81,11 +79,11 @@ class IRCWindow : AbstractWindow {
 	private GUIStyle buttonHighlightedNicknameStyle;
 	private GUIStyle buttonHighlightedStyle;
 
-	public IRCWindow(string name) {
+	public IRCWindow(string version, string name) {
 		this.name = name;
 
 		hidden = true;
-		title = "IRC";
+		title = "IRC - " + version;
 		rect = new Rect(Screen.width / 6, Screen.height / 6, Screen.width * 2 / 3, Screen.height * 2 / 3);
 
 		onResized += windowResized;
@@ -102,7 +100,6 @@ class IRCWindow : AbstractWindow {
 				currentChannelGUI.draw();
 			}
 
-			drawNewVersion();
 		GUILayout.EndVertical();
 
 		if (GUI.Button(new Rect(rect.width - 18, 2, 16, 16), "")) {
@@ -155,27 +152,6 @@ class IRCWindow : AbstractWindow {
 		}
 	}
 
-	private void drawNewVersion() {
-		if (newVersionAvailable == true) {
-			GUILayout.BeginVertical();
-				GUILayout.Space(10);
-				GUILayout.BeginHorizontal();
-					Color oldColor = GUI.color;
-					GUI.color = Color.yellow;
-					GUILayout.Label("A newer version of this plugin is available.");
-					GUI.color = oldColor;
-
-					GUILayout.Space(10);
-
-					if (GUILayout.Button("Download Page")) {
-						Application.OpenURL(FORUM_THREAD_URL);
-					}
-
-					GUILayout.FlexibleSpace();
-				GUILayout.EndHorizontal();
-			GUILayout.EndVertical();
-		}
-	}
 
 	private void drawChannelButtons() {
 		GUILayout.BeginHorizontal();
