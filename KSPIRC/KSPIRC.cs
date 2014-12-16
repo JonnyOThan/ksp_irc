@@ -99,7 +99,6 @@ namespace KSPIRC
                                                                GameScenes.MAINMENU,
                                                                GameScenes.PSYSTEM,
                                                                GameScenes.SPACECENTER,
-                                                               GameScenes.SPH,
                                                                GameScenes.TRACKSTATION);
             windowButton.OnClick += (e) => toggleChatWindow();
         }
