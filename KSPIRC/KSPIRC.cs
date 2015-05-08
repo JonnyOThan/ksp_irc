@@ -21,7 +21,6 @@ using System.Linq;
 using System.Net.Sockets;
 using System.Text;
 using UnityEngine;
-using Toolbar;
 
 namespace KSPIRC
 {
@@ -47,6 +46,7 @@ namespace KSPIRC
         private string version;
 
         private IButton windowButton;
+        private ApplicationLauncherButton appLauncherButton;
 
         KSPIRC()
         {
@@ -88,32 +88,69 @@ namespace KSPIRC
                 chatWindow.addToChannel("IRC Plugin", "*", "Edit irc.cfg and restart KSP.");
             }
 
-            windowButton = ToolbarManager.Instance.add("irc", "irc");
-            windowButton.TexturePath = "KSPIRC/button-regular";
-            windowButton.ToolTip = "IRC";
-            windowButton.Visibility = new GameScenesVisibility(GameScenes.CREDITS,
-                                                               GameScenes.EDITOR,
-                                                               GameScenes.FLIGHT,
-                                                               GameScenes.LOADING,
-                                                               GameScenes.LOADINGBUFFER,
-                                                               GameScenes.MAINMENU,
-                                                               GameScenes.PSYSTEM,
-                                                               GameScenes.SPACECENTER,
-                                                               GameScenes.TRACKSTATION);
-            windowButton.OnClick += (e) => toggleChatWindow();
+            if (ToolbarManager.ToolbarAvailable)
+            {
+                windowButton = ToolbarManager.Instance.add("irc", "irc");
+                windowButton.TexturePath = "KSPIRC/button-regular";
+                windowButton.ToolTip = "IRC";
+                windowButton.Visibility = new GameScenesVisibility(GameScenes.CREDITS,
+                                                                   GameScenes.EDITOR,
+                                                                   GameScenes.FLIGHT,
+                                                                   GameScenes.LOADING,
+                                                                   GameScenes.LOADINGBUFFER,
+                                                                   GameScenes.MAINMENU,
+                                                                   GameScenes.PSYSTEM,
+                                                                   GameScenes.SPACECENTER,
+                                                                   GameScenes.TRACKSTATION);
+                windowButton.OnClick += (e) => toggleChatWindow();
+            }
+            else
+            {
+                ApplicationLauncher.AppScenes scenes = ApplicationLauncher.AppScenes.ALWAYS;
+
+                Texture toolbarButtonTexture = (Texture)GameDatabase.Instance.GetTexture("KSPIRC/button-regular", false);
+                appLauncherButton = ApplicationLauncher.Instance.AddModApplication(onAppLaunchToggleOn,
+                                                                                   onAppLaunchToggleOff,
+                                                                                   null,
+                                                                                   null,
+                                                                                   null,
+                                                                                   null,
+                                                                                   scenes,
+                                                                                   toolbarButtonTexture);
+            }
         }
 
         public void OnDestroy()
         {
-            windowButton.Destroy();
+            if (windowButton != null)
+            {
+                windowButton.Destroy();
+                windowButton = null;
+            }
+
+            if (appLauncherButton != null)
+            {
+                ApplicationLauncher.Instance.DisableMutuallyExclusive(appLauncherButton);
+                ApplicationLauncher.Instance.RemoveModApplication(appLauncherButton);
+                appLauncherButton = null;
+            }
         }
 
+        void onAppLaunchToggleOn()
+        {
+            chatWindow.hidden = false;
+        }
+
+        void onAppLaunchToggleOff()
+        {
+            chatWindow.hidden = true;
+        }
         #region gui
 
         public void OnGUI()
         {
             // auto-hide window
-            if (!windowButton.Visibility.Visible)
+            if (windowButton != null && !windowButton.Visibility.Visible)
             {
                 configWindow.hidden = true;
                 chatWindow.hidden = true;
@@ -121,28 +158,53 @@ namespace KSPIRC
 
             if (chatWindow.hidden && (chatWindow.anyChannelsHighlightedPrivateMessage))
             {
-                windowButton.TexturePath = "KSPIRC/button-pm";
-                windowButton.Important = true;
+                updateToolbarButton("pm", true);
             }
             else
             {
                 if (chatWindow.hidden && chatWindow.anyChannelsHighlightedMessage)
                 {
-                    windowButton.TexturePath = "KSPIRC/button-message";
+                    updateToolbarButton("message");
                 }
                 else if (chatWindow.hidden && chatWindow.anyChannelsHighlightedJoin)
                 {
-                    windowButton.TexturePath = "KSPIRC/button-join";
+                    updateToolbarButton("join");
                 }
                 else
                 {
-                    windowButton.TexturePath = "KSPIRC/button-regular";
+                    updateToolbarButton("regular");
                 }
-                windowButton.Important = false;
             }
 
             configWindow.draw();
             chatWindow.draw();
+        }
+
+        private void updateToolbarButton(string textureName)
+        {
+            updateToolbarButton(textureName, false, false);
+        }
+
+        private void updateToolbarButton(string textureName, bool important)
+        {
+            updateToolbarButton(textureName, true, important);
+        }
+
+        private void updateToolbarButton(string textureName, bool updateImportant, bool important)
+        {
+            if (windowButton != null)
+            {
+                windowButton.TexturePath = "KSPIRC/button-" + textureName;
+                if (important)
+                {
+                    windowButton.Important = important;
+                }
+            }
+            if (this.appLauncherButton != null)
+            {
+                Texture toolbarButtonPMTexture = (Texture)GameDatabase.Instance.GetTexture("KSPIRC/button-" + textureName, false);
+                appLauncherButton.SetTexture(toolbarButtonPMTexture);
+            }
         }
 
         private void toggleChatWindow()

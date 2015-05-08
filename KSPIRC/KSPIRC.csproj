@@ -40,9 +40,6 @@
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="System.Data" />
     <Reference Include="System.Xml" />
-    <Reference Include="Toolbar">
-      <HintPath>..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Kerbal Space Program\GameData\000_Toolbar\Toolbar.dll</HintPath>
-    </Reference>
     <Reference Include="UnityEngine">
       <HintPath>..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Kerbal Space Program\KSP_Data\Managed\UnityEngine.dll</HintPath>
     </Reference>
@@ -60,6 +57,7 @@
     <Compile Include="IRCChatWindow.cs" />
     <Compile Include="IRCCommandEvent.cs" />
     <Compile Include="ConfigChangedEvent.cs" />
+    <Compile Include="ToolbarWrapper.cs" />
     <Compile Include="UserCommandEvent.cs" />
     <Compile Include="KSPIRCKSPAddonFixed.cs" />
     <Compile Include="KSPIRC.cs" />

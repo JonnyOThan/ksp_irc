@@ -308,6 +308,7 @@ namespace KSPIRC
                     send("JOIN " + channel);
                 }
             }
+            autoJoinsSent = true;
         }
     }
 }
