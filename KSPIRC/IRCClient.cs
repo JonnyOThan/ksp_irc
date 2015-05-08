@@ -31,6 +31,7 @@ namespace KSPIRC
     class IRCClient
     {
         private const long SERVER_PING_INTERVAL = 30000;
+        private const long AUTO_JOIN_DELAY = 5000;
 
         public event IRCCommandHandler onCommandReceived;
         public event IRCCommandHandler onCommandSent;
@@ -46,6 +47,8 @@ namespace KSPIRC
         private StringBuilder textBuffer = new StringBuilder();
         private bool tryReconnect = true;
         private bool connected;
+        private long connectTime;
+        private bool autoJoinsSent = false;
         private long lastServerPing = DateTime.UtcNow.Ticks / 10000;
 
         public void connect(IRCConfig config)
@@ -101,6 +104,7 @@ namespace KSPIRC
                 send(new IRCCommand(null, "NICK", config.nick));
                 send(new IRCCommand(null, "USER", (String.IsNullOrEmpty(config.user) ? config.nick : config.user), "8", "*", config.nick));
 
+                connectTime = DateTime.UtcNow.Ticks / 10000;
                 connected = true;
 
                 if (onConnected != null)
@@ -148,6 +152,7 @@ namespace KSPIRC
             }
 
             connected = false;
+            autoJoinsSent = false;
             textBuffer.Clear();
 
             if (wasConnected && (onDisconnected != null))
@@ -239,6 +244,11 @@ namespace KSPIRC
                     lastServerPing = now;
                     send("PING :" + now);
                 }
+
+                if (!autoJoinsSent && ((now - connectTime) >= AUTO_JOIN_DELAY))
+                {
+                    autoJoinChannels();
+                }
             }
         }
 
@@ -285,6 +295,18 @@ namespace KSPIRC
             {
                 Debug.LogException(ex);
                 reconnect();
+            }
+        }
+
+        private void autoJoinChannels()
+        {
+            string[] autoJoinChannels = config.channels.Split(' ');
+            foreach (string channel in autoJoinChannels)
+            {
+                if (channel.StartsWith("#"))
+                {
+                    send("JOIN " + channel);
+                }
             }
         }
     }

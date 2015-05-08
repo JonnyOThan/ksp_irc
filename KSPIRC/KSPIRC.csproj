@@ -11,7 +11,7 @@
     <AssemblyName>KSPIRC</AssemblyName>
     <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
-    <TargetFrameworkProfile />
+    <TargetFrameworkProfile>Unity Full v3.5</TargetFrameworkProfile>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -81,17 +81,22 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>DEL "$(TargetDir)Assembly-CSharp.dll" 
-DEL "$(TargetDir)$(ProjectName).pdb" 
+    <PostBuildEvent>echo on
+
+DEL "$(TargetDir)Assembly-CSharp.dll" 
+rem DEL "$(TargetDir)$(ProjectName).pdb" 
 DEL "$(TargetDir)UnityEngine.dll" 
 
 xcopy /s /f /y $(ProjectDir)etc $(TargetDir)GameData\$(ProjectName)\
 
+call "C:\Program Files (x86)\Unity\Editor\Data\MonoBleedingEdge\bin\cli.bat"  "C:\Program Files (x86)\Unity\Editor\Data\MonoBleedingEdge\lib\mono\4.0\pdb2mdb.exe" "$(TargetDir)$(TargetFileName)"
 
 dir
 copy /y $(ProjectDir)CHANGES.txt GameData\$(ProjectName)\
 copy /y $(ProjectDir)LICENSE.txt GameData\$(ProjectName)\
 copy /y $(TargetDir)$(ProjectName).dll GameData\$(ProjectName)\
+copy /y $(TargetDir)$(ProjectName).pdb GameData\$(ProjectName)\
+copy /y $(TargetDir)$(TargetFileName).mdb GameData\$(ProjectName)\
 
 "C:\Program Files\7-Zip\7z" a -tzip $(ProjectName)-$(ConfigurationName).zip GameData
 copy $(ProjectName)-$(ConfigurationName).zip $(ProjectDir)
@@ -100,7 +105,8 @@ IF EXIST "$(ProjectDir)..\..\Timmers_KSP\KSP_TEST" xcopy /s /f /y $(TargetDir)\G
 
 IF EXIST "$(ProjectDir)..\..\Timmers_KSP\KSP_TEST_STRIPPED" xcopy /s /f /y $(TargetDir)\GameData "$(ProjectDir)..\..\Timmers_KSP\KSP_TEST_STRIPPED\GameData\"
 
-IF EXIST "C:\Program Files (x86)\Steam\steamapps\common\Kerbal Space Program" xcopy /s /f /y $(TargetDir)GameData "C:\Program Files (x86)\Steam\steamapps\common\Kerbal Space Program\GameData\"</PostBuildEvent>
+IF EXIST "C:\Program Files (x86)\Steam\steamapps\common\Kerbal Space Program" xcopy /s /f /y $(TargetDir)GameData "C:\Program Files (x86)\Steam\steamapps\common\Kerbal Space Program\GameData\"
+</PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

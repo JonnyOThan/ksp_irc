@@ -25,19 +25,186 @@ namespace KSPIRC
 {
     class ChannelGUI
     {
-        private struct BufferEntry
+        private class BufferEntry
         {
-            public readonly string sender;
-            public readonly string text;
-            public readonly bool link;
+            private class Element
+            {
+                private string text;
+                private readonly bool link;
+
+                internal Element(string text, bool link)
+                {
+                    this.text = text;
+                    this.link = link;
+                }
+
+                internal void Append(string word)
+                {
+                    this.text += " " + word;
+                }
+
+                internal float RenderWidth(ChannelGUI gui, string sender)
+                {
+                    bool highlighted = gui.highlightName && (sender != "*") && text.ToLower().Contains(gui.config.nick.ToLower());
+
+                    GUIStyle style = highlighted ? gui.textHighlightedStyle : gui.textStyle;
+                    
+                    return style.CalcSize(new GUIContent(text)).x;
+                }
+
+                internal void Render(ChannelGUI gui, string sender)
+                {
+                    bool highlighted = gui.highlightName && (sender != "*") && text.ToLower().Contains(gui.config.nick.ToLower());
+                    
+                    GUIStyle style = highlighted ? gui.textHighlightedStyle : gui.textStyle;
+                    
+                    if (link)
+                    {
+                        if (GUILayout.Button(text, gui.textLinkStyle))
+                        {
+                            handleClick();
+                        }
+                    }
+                    else
+                    {
+                        GUILayout.Label(text, style);
+                    }
+                }
+
+                private void handleClick()
+                {
+                    Application.OpenURL(text);
+                }
+            }
+
+            private static bool appendNonLinks = false;
+
+            private readonly string sender;
+            private readonly string sourceText;
+            private float sourceTextWidth = -1;
+            private readonly Element[] elements;
 
             public BufferEntry(string sender, string text)
             {
                 this.sender = sender;
-                this.text = text;
+                this.sourceText = text;
 
-                string textLower = text.ToLower();
-                link = textLower.Contains("http://") || textLower.Contains("https://");
+                List<Element> tempElements = new List<Element>();
+
+                string[] words = text.Split(' ');
+                Element lastElement = null;
+                foreach (string word in words)
+                {
+                    string lower = word.ToLower();
+                    bool isLink = (lower.Contains("http://") || lower.Contains("https://"));
+                    
+                    if (appendNonLinks)
+                    {
+                        if (isLink || lastElement == null)
+                        {
+                            Element element = new Element(word, isLink);
+
+                            tempElements.Add(element);
+                            lastElement = (isLink ? null : element);
+                        }
+                        else
+                        {
+                            lastElement.Append(word);
+                        }
+                    }
+                    else 
+                    {
+                        Element element = new Element(word, isLink);
+
+                        tempElements.Add(element);
+                    }
+                }
+
+                this.elements = tempElements.ToArray();
+            }
+
+            public float SenderWidth(ChannelGUI gui)
+            {
+                return gui.senderStyle.CalcSize(new GUIContent(sender)).x;
+            }
+
+            internal void windowResized()
+            {
+                sourceTextWidth = -1.0f;
+            }
+
+            private static float fudgeFactor = 60.0f;
+
+            public void Render(ChannelGUI gui, float spaceWidth, float maxNameWidth)
+            {
+                GUILayout.BeginHorizontal();
+                GUILayout.Label(sender, gui.senderStyle, GUILayout.Width(maxNameWidth), GUILayout.MaxWidth(maxNameWidth));
+                if (gui.config.debug)
+                {
+                    GUILayout.Label(new GUIContent("" + sourceTextWidth), gui.senderStyle);
+                }
+
+                GUILayout.BeginVertical();
+                if (gui.config.forceSimpleRender || sourceTextWidth  < 0)
+                {
+                    startLine();
+                    GUILayout.Label(sourceText, gui.textStyle);
+                    endLine();
+                }
+                else
+                {
+                    RenderElements(gui, spaceWidth, sourceTextWidth);
+                }
+                GUILayout.EndVertical();
+                if (Event.current.type == EventType.Repaint)
+                {
+                    sourceTextWidth = GUILayoutUtility.GetLastRect().width - fudgeFactor;
+                }
+                GUILayout.EndHorizontal();
+            }
+
+            private float RenderElements(ChannelGUI gui, float spaceWidth, float maxWidth)
+            {
+                float longestLineWidth = 0;
+                float lineWidth = 0;
+                bool firstElement = true;
+                startLine();
+                foreach (Element element in elements)
+                {
+                    float elementWidth = element.RenderWidth(gui, sender);
+                    if (!firstElement && lineWidth + elementWidth > maxWidth)
+                    {
+                        endLine();
+                        startLine();
+                        lineWidth = elementWidth;
+                    }
+                    else
+                    {
+                        lineWidth += elementWidth;
+                    }
+                    element.Render(gui, sender);
+
+                    GUILayout.Space(spaceWidth);
+                    firstElement = false;
+                    if (lineWidth > longestLineWidth)
+                    {
+                        longestLineWidth = lineWidth;
+                    }
+                }
+                endLine();
+
+                return longestLineWidth;
+            }
+
+            private void startLine()
+            {
+                GUILayout.BeginHorizontal();
+            }
+
+            private void endLine()
+            {
+                GUILayout.FlexibleSpace();
+                GUILayout.EndHorizontal();
             }
         }
 
@@ -115,8 +282,11 @@ namespace KSPIRC
         private GUIStyle senderStyle;
         private GUIStyle textStyle;
         private GUIStyle textHighlightedStyle;
+        private GUIStyle textLinkStyle;
         private GUIStyle lastSeenLineStyle;
         private GUIStyle userCountStyle;
+        private GUIStyle debugBackgroundStyle;
+        private float spaceWidth = 0;
         private List<User> usersForTabCompletion = new List<User>();
         private User lastTabCompletionUser;
         private string inputTextBeforeTabCompletion;
@@ -242,9 +412,13 @@ namespace KSPIRC
                 textStyle.alignment = TextAnchor.UpperLeft;
                 textStyle.margin = new RectOffset(0, 0, 0, 0);
                 textStyle.padding = new RectOffset(0, 0, 1, 0);
+                textStyle.border = new RectOffset(0, 0, 0, 0);
 
                 textHighlightedStyle = new GUIStyle(textStyle);
                 textHighlightedStyle.normal.textColor = Color.yellow;
+
+                textLinkStyle = new GUIStyle(textStyle);
+                textLinkStyle.normal.textColor = Color.green;
 
                 Texture2D lineTex = new Texture2D(1, 1);
                 lineTex.SetPixel(0, 0, XKCDColors.BlueGrey);
@@ -255,6 +429,13 @@ namespace KSPIRC
                 userCountStyle = new GUIStyle(GUI.skin.label);
                 userCountStyle.alignment = TextAnchor.MiddleCenter;
                 userCountStyle.wordWrap = false;
+
+                spaceWidth = GetSpaceWidth(textStyle);
+
+                Texture2D debugBackgroundTexture = new Texture2D(1, 1);
+                debugBackgroundTexture.SetPixel(0, 0, XKCDColors.AcidGreen);
+                debugBackgroundTexture.Apply();
+                debugBackgroundStyle = new GUIStyle(GUI.skin.label);
 
                 stylesInitialized = true;
             }
@@ -310,7 +491,7 @@ namespace KSPIRC
             float maxNameWidth = -1;
             foreach (BufferEntry entry in backBuffer)
             {
-                float width = senderStyle.CalcSize(new GUIContent(entry.sender)).x;
+                float width = entry.SenderWidth(this);
                 maxNameWidth = Mathf.Min(Mathf.Max(width, maxNameWidth), MAX_NAME_WIDTH);
             }
 
@@ -328,20 +509,7 @@ namespace KSPIRC
                     lastSeenLineDrawn = true;
                 }
 
-                GUILayout.BeginHorizontal();
-                GUILayout.Label(entry.sender, senderStyle, GUILayout.Width(maxNameWidth), GUILayout.MaxWidth(maxNameWidth));
-                GUILayout.Label(entry.text, highlightNickname(entry.sender, entry.text) ? textHighlightedStyle : textStyle);
-
-                // handle clicking on links
-                if (entry.link && Input.GetMouseButtonUp(0) &&
-                    (Event.current.type == EventType.Repaint) &&
-                    GUILayoutUtility.GetLastRect().Contains(Event.current.mousePosition))
-                {
-
-                    handleClick(entry);
-                }
-                GUILayout.EndHorizontal();
-
+                entry.Render(this, spaceWidth, maxNameWidth);
                 idx++;
             }
             GUILayout.EndScrollView();
@@ -349,32 +517,6 @@ namespace KSPIRC
             {
                 bufferWidth = GUILayoutUtility.GetLastRect().width;
             }
-        }
-
-        private void handleClick(BufferEntry entry)
-        {
-            string textLower = entry.text.ToLower();
-            int pos = textLower.IndexOf("http://");
-            if (pos < 0)
-            {
-                pos = textLower.IndexOf("https://");
-            }
-            if (pos >= 0)
-            {
-                int endPos = textLower.IndexOf(' ', pos);
-                if (endPos < 0)
-                {
-                    endPos = textLower.Length;
-                }
-
-                string link = entry.text.Substring(pos, endPos - pos);
-                Application.OpenURL(link);
-            }
-        }
-
-        private bool highlightNickname(string sender, string text)
-        {
-            return highlightName && (sender != "*") && text.ToLower().Contains(config.nick.ToLower());
         }
 
         private void drawNames()
@@ -434,7 +576,9 @@ namespace KSPIRC
                 }
             }
 
-            if ((!handle.StartsWith("#") && !handle.StartsWith("(") && !handle.EndsWith(")")) || highlightNickname(sender, text))
+            Boolean nickInText = (this.highlightName && text.Contains(config.nick.ToLower()));
+
+            if ((!handle.StartsWith("#") && !handle.StartsWith("(") && !handle.EndsWith(")")) || nickInText)
             {
                 channelHighlightedPrivateMessage = true;
             }
@@ -534,10 +678,23 @@ namespace KSPIRC
             }
         }
 
+        private float GetSpaceWidth(GUIStyle style)
+        {
+            Vector2 xspacexdims = style.CalcSize(new GUIContent("x x"));
+            Vector2 xxdims = style.CalcSize(new GUIContent("xx"));
+
+            return xspacexdims.x - xxdims.x;
+        }
+
         public void windowResized()
         {
             nicknameWidth = -1;
             bufferWidth = -1;
+
+            foreach (BufferEntry entry in backBuffer)
+            {
+                entry.windowResized();
+            }
         }
     }
 

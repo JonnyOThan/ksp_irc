@@ -34,6 +34,8 @@ namespace KSPIRC
         private string wipNick;
         private string wipUser;
         private string wipServerPassword;
+        private bool wipForceSimpleRender;
+        private string wipChannels;
         private bool wipDebug;
 
         public event ConfigChangedHandler configChangedEvent;
@@ -46,11 +48,13 @@ namespace KSPIRC
             this.wipNick = (config.nick == null ? "" : config.nick);
             this.wipUser = (config.user == null ? "" : config.user);
             this.wipServerPassword = (config.serverPassword == null ? "" : config.serverPassword);
+            this.wipForceSimpleRender = config.forceSimpleRender;
+            this.wipChannels = config.channels;
             this.wipDebug = config.debug;
 
 
             title = "IRC Config - " + version;
-            rect = new Rect(Screen.width / 6, Screen.height / 6, 200, 100);
+            rect = new Rect(Screen.width / 6, Screen.height / 6, 300, 200);
         }
 
         protected override void drawContents()
@@ -63,6 +67,8 @@ namespace KSPIRC
             wipNick = doConfigText("Nick", wipNick);
             wipUser = doConfigText("User", wipUser);
             wipServerPassword = doConfigText("Password", wipServerPassword);
+            wipForceSimpleRender = doConfigBool("Force Simple Render", wipForceSimpleRender);
+            wipChannels = doConfigText("Auto Join Channels", wipChannels);
             wipDebug = doConfigBool("Debug", wipDebug);
 
             if (GUILayout.Button("Confirm"))
@@ -72,6 +78,8 @@ namespace KSPIRC
                 config.nick = wipNick;
                 config.user = wipUser;
                 config.serverPassword = wipServerPassword;
+                config.forceSimpleRender = wipForceSimpleRender;
+                config.channels = wipChannels;
                 config.debug = wipDebug;
 
                 if (configChangedEvent != null)

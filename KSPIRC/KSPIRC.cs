@@ -166,6 +166,7 @@ namespace KSPIRC
             }
         }
 
+
         private void channelClosed(ChannelEvent e)
         {
             if (e.handle.StartsWith("#"))

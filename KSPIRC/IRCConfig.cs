@@ -44,6 +44,12 @@ namespace KSPIRC
         internal string nick = "";
 
         [Persistent]
+        internal bool forceSimpleRender = false;
+
+        [Persistent]
+        internal string channels = "";
+
+        [Persistent]
         internal bool debug = false;
 
         private string settingsFile = KSPUtil.ApplicationRootPath + "GameData/KSPIRC/irc.cfg";
