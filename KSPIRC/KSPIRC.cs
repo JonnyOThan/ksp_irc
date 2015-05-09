@@ -74,6 +74,8 @@ namespace KSPIRC
             client.onConnect += () => chatWindow.addToChannel(NOTICE_CHANNEL_HANDLE, "*", "Connecting to server " + config.host + ":" + config.port + "...");
             client.onConnected += () => chatWindow.addToChannel(NOTICE_CHANNEL_HANDLE, "*", "Server connection established.");
             client.onDisconnected += () => chatWindow.addToChannel(NOTICE_CHANNEL_HANDLE, "*", "Disconnected from server.");
+            client.onConnectionFailed += () => chatWindow.addToChannel(NOTICE_CHANNEL_HANDLE, "*", "Connection failed to server.");
+            client.onConnectionAttemptsExceeded += () => chatWindow.addToChannel(NOTICE_CHANNEL_HANDLE, "*", "Connection attempts exceeded. Change config before retrying.");
 
             if ((config.host != null) && (config.port > 0) && (config.nick != ""))
             {

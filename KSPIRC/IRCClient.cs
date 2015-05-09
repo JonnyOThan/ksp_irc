@@ -32,12 +32,16 @@ namespace KSPIRC
     {
         private const long SERVER_PING_INTERVAL = 30000;
         private const long AUTO_JOIN_DELAY = 5000;
+        private const long AUTO_JOIN_TIME_BETWEEN_ATTEMPTS = 30000;
+        private const int MAX_CONNECT_RETRIES = 5;
 
         public event IRCCommandHandler onCommandReceived;
         public event IRCCommandHandler onCommandSent;
         public event Callback onConnect;
         public event Callback onConnected;
         public event Callback onDisconnected;
+        public event Callback onConnectionFailed;
+        public event Callback onConnectionAttemptsExceeded;
 
         private IRCConfig config;
 
@@ -48,11 +52,13 @@ namespace KSPIRC
         private bool tryReconnect = true;
         private bool connected;
         private long connectTime;
-        private bool autoJoinsSent = false;
+        private long lastAutoJoinsSentTime = -1;
         private long lastServerPing = DateTime.UtcNow.Ticks / 10000;
+        private int connectionAttempts = 0;
 
         public void connect(IRCConfig config)
         {
+            this.connectionAttempts = 0;
             this.config = config;
             connect();
         }
@@ -81,6 +87,16 @@ namespace KSPIRC
             if (onConnect != null)
             {
                 onConnect();
+            }
+
+            if (connectionAttempts++ > MAX_CONNECT_RETRIES)
+            {
+                Debug.LogWarning("Too many failed attempts to connect to host[" + config.host + "] port[" + config.port + "]");
+                if (onConnectionAttemptsExceeded != null)
+                {
+                    onConnectionAttemptsExceeded();
+                }
+                return;
             }
 
             try
@@ -112,9 +128,9 @@ namespace KSPIRC
                     onConnected();
                 }
             }
-            catch (Exception e)
+            catch (Exception ex)
             {
-                Debug.LogException(e);
+                handleException(ex, true);
             }
         }
 
@@ -152,7 +168,6 @@ namespace KSPIRC
             }
 
             connected = false;
-            autoJoinsSent = false;
             textBuffer.Clear();
 
             if (wasConnected && (onDisconnected != null))
@@ -202,8 +217,7 @@ namespace KSPIRC
                 }
                 catch (SocketException ex)
                 {
-                    Debug.LogException(ex);
-                    reconnect();
+                    handleException(ex, true);
                 }
 
                 if (textBuffer.Length > 0)
@@ -238,14 +252,17 @@ namespace KSPIRC
 
                 // send something to socket to potentially trigger SocketException elsewhere when reading
                 // off the socket
-                long now = DateTime.UtcNow.Ticks / 10000;
+                long now = DateTime.UtcNow.Ticks / 10000L;
                 if ((now - lastServerPing) >= SERVER_PING_INTERVAL)
                 {
                     lastServerPing = now;
                     send("PING :" + now);
                 }
 
-                if (!autoJoinsSent && ((now - connectTime) >= AUTO_JOIN_DELAY))
+                // only send auto joins if we've been connected for AUTO_JOIN_DELAY millis to allow time for post-connection stuff (user, nick)
+                // and if AUTO_JOIN_TIME_BETWEEN_ATTEMPTS has elapsed since the last auto join happened, to avoid other join spam
+                if (((now - lastAutoJoinsSentTime) >= AUTO_JOIN_TIME_BETWEEN_ATTEMPTS ) && 
+                    ((now - connectTime) >= AUTO_JOIN_DELAY))
                 {
                     autoJoinChannels();
                 }
@@ -265,13 +282,11 @@ namespace KSPIRC
             }
             catch (SocketException ex)
             {
-                Debug.LogException(ex);
-                reconnect();
+                handleException(ex, true);
             }
             catch (IOException ex)
             {
-                Debug.LogException(ex);
-                reconnect();
+                handleException(ex, true);
             }
         }
 
@@ -288,12 +303,24 @@ namespace KSPIRC
             }
             catch (SocketException ex)
             {
-                Debug.LogException(ex);
-                reconnect();
+                handleException(ex, true);
             }
             catch (IOException ex)
             {
-                Debug.LogException(ex);
+                handleException(ex, true);
+            }
+        }
+
+        private void handleException(Exception ex, bool shouldReconnect)
+        {
+            Debug.LogException(ex);
+            if (onConnectionFailed != null)
+            {
+                onConnectionFailed();
+            }
+
+            if (shouldReconnect)
+            {
                 reconnect();
             }
         }
@@ -308,7 +335,7 @@ namespace KSPIRC
                     send("JOIN " + channel);
                 }
             }
-            autoJoinsSent = true;
+            lastAutoJoinsSentTime = DateTime.UtcNow.Ticks / 10000L;
         }
     }
 }
