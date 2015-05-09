@@ -53,6 +53,7 @@ namespace KSPIRC
         private bool connected;
         private long connectTime;
         private long lastAutoJoinsSentTime = -1;
+        private bool autoJoinsSent = true;
         private long lastServerPing = DateTime.UtcNow.Ticks / 10000;
         private int connectionAttempts = 0;
 
@@ -88,6 +89,8 @@ namespace KSPIRC
             {
                 onConnect();
             }
+
+            autoJoinsSent = false;
 
             if (connectionAttempts++ > MAX_CONNECT_RETRIES)
             {
@@ -261,7 +264,8 @@ namespace KSPIRC
 
                 // only send auto joins if we've been connected for AUTO_JOIN_DELAY millis to allow time for post-connection stuff (user, nick)
                 // and if AUTO_JOIN_TIME_BETWEEN_ATTEMPTS has elapsed since the last auto join happened, to avoid other join spam
-                if (((now - lastAutoJoinsSentTime) >= AUTO_JOIN_TIME_BETWEEN_ATTEMPTS ) && 
+                if (!autoJoinsSent && 
+                    ((now - lastAutoJoinsSentTime) >= AUTO_JOIN_TIME_BETWEEN_ATTEMPTS ) && 
                     ((now - connectTime) >= AUTO_JOIN_DELAY))
                 {
                     autoJoinChannels();
@@ -336,6 +340,7 @@ namespace KSPIRC
                 }
             }
             lastAutoJoinsSentTime = DateTime.UtcNow.Ticks / 10000L;
+            autoJoinsSent = true;
         }
     }
 }
