@@ -51,7 +51,7 @@ namespace KSPIRC
         internal ChannelMessageRenderer get(ChannelGUI gui, string sender, string text)
         {
             //return new MultiLabelChannelMessageRenderer(sender, text);
-            return new RichTextLabelChannelMessageRenderer(sender, text);
+            return new RichTextLabelChannelMessageRenderer(gui, sender, text);
         }
 
         private class MultiLabelChannelMessageRenderer : ChannelMessageRenderer
@@ -236,7 +236,10 @@ namespace KSPIRC
         private class RichTextLabelChannelMessageRenderer : ChannelMessageRenderer
         {
             private readonly string senderRichText;
+            private readonly string senderClickifiedText;
             private readonly string textRichText;
+            private readonly string textClickifiedText;
+            private readonly bool highlighted;
 
             private bool stylesInitialized = false;
             private GUIStyle senderTextStyle;
@@ -246,13 +249,14 @@ namespace KSPIRC
 
             private Rect textRect;
 
-            internal RichTextLabelChannelMessageRenderer(string sender, string text)
+            internal RichTextLabelChannelMessageRenderer(ChannelGUI gui, string sender, string text)
                 : base(sender, text)
             {
-                this.senderRichText = ToRichText(sender);
-                this.textRichText = ToRichText(text);
-            }
+                ToRichText(sender, out senderRichText, out senderClickifiedText);
+                ToRichText(text, out textRichText, out textClickifiedText);
 
+                this.highlighted = gui.highlightName && (sender != "*") && this.sourceText.ToLower().Contains(gui.config.nick.ToLower());
+            }
 
             internal override float SenderWidth(ChannelGUI gui)
             {
@@ -264,16 +268,15 @@ namespace KSPIRC
             {
                 initStyles(gui);
 
-                bool highlighted = gui.highlightName && (sender != "*") && this.sourceText.ToLower().Contains(gui.config.nick.ToLower());
-
+                
                 GUIStyle style = (highlighted ? textHighlightedStyle : textStyle);
 
                 GUILayout.BeginHorizontal();
                 GUILayout.Label(senderRichText, senderTextStyle, GUILayout.Width(maxNameWidth), GUILayout.MaxWidth(maxNameWidth));
                 if (GUILayout.Button(textRichText, style))
                 {
-                    int textIndex = style.GetCursorStringIndex(textRect, new GUIContent(textRichText), Event.current.mousePosition);
-                    handleClick(gui, textRichText, textIndex);
+                    int textIndex = style.GetCursorStringIndex(textRect, new GUIContent(textClickifiedText), Event.current.mousePosition);
+                    handleClick(gui, textClickifiedText, textIndex);
                 }
                 if (Event.current.type == EventType.Repaint)
                 {
@@ -303,7 +306,7 @@ namespace KSPIRC
                 for (int ix = index - 1; ix >= 0; ix--)
                 {
                     char aChar = text[ix];
-                    if (aChar == ' ' || aChar == '>')
+                    if (aChar < 0x20 || aChar == ' ' || aChar == '>')
                     {
                         wordStartIndex = ix + 1;
                         break;
@@ -314,7 +317,7 @@ namespace KSPIRC
                 for (int ix = index + 1; ix < text.Length; ix++)
                 {
                     char aChar = text[ix];
-                    if (aChar == ' ' || aChar == '<' || aChar == ',')
+                    if (aChar < 0x20 || aChar == ' ' || aChar == '<' || aChar == ',')
                     {
                         wordEndIndex = ix - 1;
                         break;
@@ -346,11 +349,27 @@ namespace KSPIRC
                 }
             }
 
-            private static string ToRichText(string text)
+            private static string StripControlChars(string source)
+            {
+                string result = "";
+
+                for (int ix = 0; ix < source.Length; ix++)
+                {
+                    char aChar = source[ix];
+                    if (aChar >= 0x20)
+                    {
+                        result += aChar;
+                    }
+                }
+
+                return result;
+            }
+
+            private static void ToRichText(string text, out string richTextified, out string clickified)
             {
                 char[] textChars = text.ToCharArray();
 
-                string richTextified = "";
+                richTextified = "";
 
                 int index = 0;
                 char textChar;
@@ -421,20 +440,63 @@ namespace KSPIRC
                     }
                 }
 
-                if (inBold)
-                {
-                    richTextified += "</b>";
-                }
-                if (inItalic)
-                {
-                    richTextified += "</i>";
-                }
+                richTextified += updateBoldItalic(inBold, inItalic, false, false);
                 if (inColor)
                 {
                     richTextified += "</color>";
                 }
 
-                return richTextified;
+                
+
+                // search for links in the text
+                richTextified = HighlightLinks(richTextified);
+
+                // use full markup for clickies
+                clickified = StripControlChars(text);
+            }
+
+            private static readonly string LINK_START_TAG = "<color=teal>";
+            private static readonly string LINK_END_TAG = "</color>";
+
+            private static string HighlightLinks(string source)
+            {
+                string result = source;
+                if (result.Length > 0)
+                {
+                    int current = 0;
+                    while (current < result.Length)
+                    {
+                        int linkStartIndex = result.IndexOf("http", current);
+                        if (linkStartIndex == -1)
+                        {
+                            break;
+                        }
+
+                        result = result.Insert(linkStartIndex, LINK_START_TAG);
+
+                        int linkEndIndex = linkStartIndex + LINK_START_TAG.Length;
+                        while (linkEndIndex < result.Length &&
+                               !(result[linkEndIndex] == ' ' ||
+                                 result[linkEndIndex] == ',' ||
+                                 result[linkEndIndex] == '<'))
+                        {
+                            linkEndIndex++;
+                        }
+
+                        if (linkEndIndex < result.Length)
+                        {
+                            result = result.Insert(linkEndIndex, LINK_END_TAG);
+                            current = linkEndIndex + LINK_END_TAG.Length;
+                        }
+                        else
+                        {
+                            result += LINK_END_TAG;
+                            break;
+                        }
+                    }
+                }
+
+                return result;
             }
 
             private static string updateBoldItalic(bool oldBold, bool oldItalic, bool newBold, bool newItalic)
