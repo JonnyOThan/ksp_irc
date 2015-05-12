@@ -50,7 +50,7 @@ namespace KSPIRC
             }
         }
 
-        public Rect rect = new Rect(Screen.width / 4, Screen.height / 4, Screen.width / 2, Screen.height / 2);
+        public Rect rect;
         public string title = "";
         public bool resizable = true;
         public bool draggable = true;
@@ -59,6 +59,19 @@ namespace KSPIRC
         private bool resizeHandleMouseDown;
         private Vector3 mouseDownPos;
         private Rect resizeOrigRect;
+        private readonly IRCConfig config;
+        private readonly string configName;
+
+        protected AbstractWindow(string configName, IRCConfig config, Rect defaultRect)
+        {
+            this.configName = configName;
+            this.config = config;
+
+            if (!config.windowRects.TryGetValue(configName, out rect))
+            {
+                rect = defaultRect;
+            }
+        }
 
         public virtual void draw()
         {
@@ -111,6 +124,9 @@ namespace KSPIRC
                 if (Input.GetMouseButtonUp(0))
                 {
                     resizeHandleMouseDown = false;
+
+                    config.windowRects[configName] = rect;
+                    config.Save();
                 }
                 else
                 {

@@ -52,6 +52,9 @@ namespace KSPIRC
         [Persistent]
         internal bool debug = false;
 
+        [Persistent]
+        internal Dictionary<string, Rect> windowRects = new Dictionary<string,Rect>();
+
         private string settingsFile = KSPUtil.ApplicationRootPath + "GameData/KSPIRC/irc.cfg";
             
 

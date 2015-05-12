@@ -92,18 +92,20 @@ namespace KSPIRC
         private Dictionary<string, ChannelGUI> channelGUIs = new Dictionary<string, ChannelGUI>();
         private List<string> handles = new List<string>();
         private ChannelGUI currentChannelGUI;
+        private readonly IRCLinkWindow linkWindow;
         private bool stylesInitialized;
         private GUIStyle buttonActiveStyle;
         private GUIStyle buttonHighlightedNicknameStyle;
         private GUIStyle buttonHighlightedStyle;
 
-        public IRCChatWindow(string version, IRCConfig config)
+        public IRCChatWindow(IRCLinkWindow linkWindow, string version, IRCConfig config)
+            : base("chat", config, new Rect(Screen.width / 6, Screen.height / 6, Screen.width * 2 / 3, Screen.height * 2 / 3))
         {
+            this.linkWindow = linkWindow;
             this.config = config;
 
             hidden = true;
             title = "IRC - " + version + " - " + config.host + ":" + config.port;
-            rect = new Rect(Screen.width / 6, Screen.height / 6, Screen.width * 2 / 3, Screen.height * 2 / 3);
 
             onResized += windowResized;
             onVisibleToggled += (e) => windowVisibleToggled(e.visible);
@@ -168,13 +170,18 @@ namespace KSPIRC
                 if (currentChannelGUI != null)
                 {
                     currentChannelGUI.hidden = false;
-                }
+                } 
             }
             else
             {
                 foreach (ChannelGUI channelGUI in channelGUIs.Values)
                 {
                     channelGUI.hidden = true;
+                }
+
+                if (linkWindow != null)
+                {
+                    linkWindow.hidden = true;
                 }
             }
         }
@@ -324,7 +331,7 @@ namespace KSPIRC
             ChannelGUI channelGUI;
             if (!channelGUIs.ContainsKey(handle))
             {
-                channelGUI = new ChannelGUI(handle, config);
+                channelGUI = new ChannelGUI(linkWindow, handle, config);
                 channelGUI.hidden = true;
                 channelGUI.onUserCommandEntered += (e) => userCommandEntered(e.command);
                 channelGUIs.Add(handle, channelGUI);

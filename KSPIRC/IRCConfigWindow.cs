@@ -39,8 +39,9 @@ namespace KSPIRC
         private bool wipDebug;
 
         public event ConfigChangedHandler configChangedEvent;
-        
+
         public IRCConfigWindow(string version, IRCConfig config)
+            : base("config", config, new Rect(Screen.width / 6, Screen.height / 6, 300, 200))
         {
             this.config = config;
             this.wipHost = (config.host == null ? "" : config.host);
@@ -54,7 +55,6 @@ namespace KSPIRC
 
 
             title = "IRC Config - " + version;
-            rect = new Rect(Screen.width / 6, Screen.height / 6, 300, 200);
         }
 
         protected override void drawContents()

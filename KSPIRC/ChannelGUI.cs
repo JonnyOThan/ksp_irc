@@ -25,189 +25,6 @@ namespace KSPIRC
 {
     class ChannelGUI
     {
-        private class BufferEntry
-        {
-            private class Element
-            {
-                private string text;
-                private readonly bool link;
-
-                internal Element(string text, bool link)
-                {
-                    this.text = text;
-                    this.link = link;
-                }
-
-                internal void Append(string word)
-                {
-                    this.text += " " + word;
-                }
-
-                internal float RenderWidth(ChannelGUI gui, string sender)
-                {
-                    bool highlighted = gui.highlightName && (sender != "*") && text.ToLower().Contains(gui.config.nick.ToLower());
-
-                    GUIStyle style = highlighted ? gui.textHighlightedStyle : gui.textStyle;
-                    
-                    return style.CalcSize(new GUIContent(text)).x;
-                }
-
-                internal void Render(ChannelGUI gui, string sender)
-                {
-                    bool highlighted = gui.highlightName && (sender != "*") && text.ToLower().Contains(gui.config.nick.ToLower());
-                    
-                    GUIStyle style = highlighted ? gui.textHighlightedStyle : gui.textStyle;
-                    
-                    if (link)
-                    {
-                        if (GUILayout.Button(text, gui.textLinkStyle))
-                        {
-                            handleClick();
-                        }
-                    }
-                    else
-                    {
-                        GUILayout.Label(text, style);
-                    }
-                }
-
-                private void handleClick()
-                {
-                    Application.OpenURL(text);
-                }
-            }
-
-            private static bool appendNonLinks = false;
-
-            private readonly string sender;
-            private readonly string sourceText;
-            private float sourceTextWidth = -1;
-            private readonly Element[] elements;
-
-            public BufferEntry(string sender, string text)
-            {
-                this.sender = sender;
-                this.sourceText = text;
-
-                List<Element> tempElements = new List<Element>();
-
-                string[] words = text.Split(' ');
-                Element lastElement = null;
-                foreach (string word in words)
-                {
-                    string lower = word.ToLower();
-                    bool isLink = (lower.Contains("http://") || lower.Contains("https://"));
-                    
-                    if (appendNonLinks)
-                    {
-                        if (isLink || lastElement == null)
-                        {
-                            Element element = new Element(word, isLink);
-
-                            tempElements.Add(element);
-                            lastElement = (isLink ? null : element);
-                        }
-                        else
-                        {
-                            lastElement.Append(word);
-                        }
-                    }
-                    else 
-                    {
-                        Element element = new Element(word, isLink);
-
-                        tempElements.Add(element);
-                    }
-                }
-
-                this.elements = tempElements.ToArray();
-            }
-
-            public float SenderWidth(ChannelGUI gui)
-            {
-                return gui.senderStyle.CalcSize(new GUIContent(sender)).x;
-            }
-
-            internal void windowResized()
-            {
-                sourceTextWidth = -1.0f;
-            }
-
-            private static float fudgeFactor = 60.0f;
-
-            public void Render(ChannelGUI gui, float spaceWidth, float maxNameWidth)
-            {
-                GUILayout.BeginHorizontal();
-                GUILayout.Label(sender, gui.senderStyle, GUILayout.Width(maxNameWidth), GUILayout.MaxWidth(maxNameWidth));
-                if (gui.config.debug)
-                {
-                    GUILayout.Label(new GUIContent("" + sourceTextWidth), gui.senderStyle);
-                }
-
-                GUILayout.BeginVertical();
-                if (gui.config.forceSimpleRender || sourceTextWidth  < 0)
-                {
-                    startLine();
-                    GUILayout.Label(sourceText, gui.textStyle);
-                    endLine();
-                }
-                else
-                {
-                    RenderElements(gui, spaceWidth, sourceTextWidth);
-                }
-                GUILayout.EndVertical();
-                if (Event.current.type == EventType.Repaint)
-                {
-                    sourceTextWidth = GUILayoutUtility.GetLastRect().width - fudgeFactor;
-                }
-                GUILayout.EndHorizontal();
-            }
-
-            private float RenderElements(ChannelGUI gui, float spaceWidth, float maxWidth)
-            {
-                float longestLineWidth = 0;
-                float lineWidth = 0;
-                bool firstElement = true;
-                startLine();
-                foreach (Element element in elements)
-                {
-                    float elementWidth = element.RenderWidth(gui, sender);
-                    if (!firstElement && lineWidth + elementWidth > maxWidth)
-                    {
-                        endLine();
-                        startLine();
-                        lineWidth = elementWidth;
-                    }
-                    else
-                    {
-                        lineWidth += elementWidth;
-                    }
-                    element.Render(gui, sender);
-
-                    GUILayout.Space(spaceWidth);
-                    firstElement = false;
-                    if (lineWidth > longestLineWidth)
-                    {
-                        longestLineWidth = lineWidth;
-                    }
-                }
-                endLine();
-
-                return longestLineWidth;
-            }
-
-            private void startLine()
-            {
-                GUILayout.BeginHorizontal();
-            }
-
-            private void endLine()
-            {
-                GUILayout.FlexibleSpace();
-                GUILayout.EndHorizontal();
-            }
-        }
-
         private const int MAX_BACK_BUFFER_LINES = 250;
         private const float MAX_NAME_WIDTH = 150;
 
@@ -267,9 +84,9 @@ namespace KSPIRC
 
         public event UserCommandHandler onUserCommandEntered;
 
-        private bool highlightName;
+        internal bool highlightName;
         private string inputText = "";
-        private List<BufferEntry> backBuffer = new List<BufferEntry>();
+        private List<ChannelMessageRenderer> backBuffer = new List<ChannelMessageRenderer>();
         private Vector2 backBufferScrollPosition;
         private Vector2 namesScrollPosition;
         private List<User> users = new List<User>();
@@ -279,10 +96,10 @@ namespace KSPIRC
         private int unseenIdx = -1;
         private bool stylesInitialized;
         private GUIStyle nameStyle;
-        private GUIStyle senderStyle;
-        private GUIStyle textStyle;
-        private GUIStyle textHighlightedStyle;
-        private GUIStyle textLinkStyle;
+        internal GUIStyle senderStyle;
+        internal GUIStyle textStyle;
+        internal GUIStyle textHighlightedStyle;
+        internal GUIStyle textLinkStyle;
         private GUIStyle lastSeenLineStyle;
         private GUIStyle userCountStyle;
         private GUIStyle debugBackgroundStyle;
@@ -293,9 +110,12 @@ namespace KSPIRC
         private string inputTextAfterTabCompletion;
         private bool keyDown;
         private bool lastSeenLineNeedsReset;
+        internal readonly IRCLinkWindow linkWindow;
+        private readonly ChannelMessageRendererFactory messageRendererFactory = new ChannelMessageRendererFactory();
 
-        public ChannelGUI(string handle, IRCConfig config)
+        public ChannelGUI(IRCLinkWindow linkWindow, string handle, IRCConfig config)
         {
+            this.linkWindow = linkWindow;
             this.handle = handle;
             this.config = config;
 
@@ -489,7 +309,7 @@ namespace KSPIRC
                 GUI.skin.horizontalScrollbar, GUI.skin.verticalScrollbar, GUI.skin.textArea);
 
             float maxNameWidth = -1;
-            foreach (BufferEntry entry in backBuffer)
+            foreach (ChannelMessageRenderer entry in backBuffer)
             {
                 float width = entry.SenderWidth(this);
                 maxNameWidth = Mathf.Min(Mathf.Max(width, maxNameWidth), MAX_NAME_WIDTH);
@@ -497,7 +317,7 @@ namespace KSPIRC
 
             bool lastSeenLineDrawn = false;
             int idx = 0;
-            foreach (BufferEntry entry in backBuffer)
+            foreach (ChannelMessageRenderer entry in backBuffer)
             {
                 // draw "last seen" indicator
                 if (!lastSeenLineDrawn && (idx == unseenIdx))
@@ -565,7 +385,7 @@ namespace KSPIRC
                 lastSeenLineNeedsReset = false;
             }
 
-            BufferEntry entry = new BufferEntry(sender, text);
+            ChannelMessageRenderer entry = messageRendererFactory.get(this, sender, text);
             backBuffer.Add(entry);
             if (backBuffer.Count() > MAX_BACK_BUFFER_LINES)
             {
@@ -691,9 +511,9 @@ namespace KSPIRC
             nicknameWidth = -1;
             bufferWidth = -1;
 
-            foreach (BufferEntry entry in backBuffer)
+            foreach (ChannelMessageRenderer entry in backBuffer)
             {
-                entry.windowResized();
+                entry.OnWindowResized();
             }
         }
     }

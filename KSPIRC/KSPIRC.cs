@@ -43,6 +43,7 @@ namespace KSPIRC
         private IRCClient client;
         private IRCConfigWindow configWindow;
         private IRCChatWindow chatWindow;
+        private readonly IRCLinkWindow linkWindow;
         private string version;
 
         private IButton windowButton;
@@ -59,7 +60,10 @@ namespace KSPIRC
             configWindow = new IRCConfigWindow(version, config);
             configWindow.configChangedEvent += configChanged;
 
-            chatWindow = new IRCChatWindow(version, config);
+            linkWindow = new IRCLinkWindow(config);
+            linkWindow.hidden = true;
+
+            chatWindow = new IRCChatWindow(linkWindow, version, config);
             chatWindow.channelClosedEvent += channelClosed;
             chatWindow.onUserCommandEntered += (e) => handleUserCommand(e.command);
             chatWindow.onShowConfigHandler += showConfig;
@@ -179,6 +183,7 @@ namespace KSPIRC
             }
 
             configWindow.draw();
+            linkWindow.draw();
             chatWindow.draw();
         }
 

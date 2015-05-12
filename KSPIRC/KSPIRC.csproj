@@ -46,7 +46,9 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AbstractWindow.cs" />
+    <Compile Include="ChannelMessageRenderer.cs" />
     <Compile Include="ChannelGUI.cs" />
+    <Compile Include="IRCLinkWindow.cs" />
     <Compile Include="ShowConfigEvent.cs" />
     <Compile Include="CTCPCommand.cs" />
     <Compile Include="Extensions.cs" />
