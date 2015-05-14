@@ -31,6 +31,7 @@ namespace KSPIRC
 
         private string wipHost;
         private string wipPort;
+        private bool wipSecure;
         private string wipNick;
         private string wipUser;
         private string wipServerPassword;
@@ -46,6 +47,7 @@ namespace KSPIRC
             this.config = config;
             this.wipHost = (config.host == null ? "" : config.host);
             this.wipPort = Convert.ToString(config.port);
+            this.wipSecure = config.secure;
             this.wipNick = (config.nick == null ? "" : config.nick);
             this.wipUser = (config.user == null ? "" : config.user);
             this.wipServerPassword = (config.serverPassword == null ? "" : config.serverPassword);
@@ -64,6 +66,7 @@ namespace KSPIRC
             GUILayout.BeginVertical();
             wipHost = doConfigText("Host", wipHost);
             wipPort = doConfigText("Port", wipPort);
+            wipSecure = doConfigBool("Secure", wipSecure);
             wipNick = doConfigText("Nick", wipNick);
             wipUser = doConfigText("User", wipUser);
             wipServerPassword = doConfigText("Password", wipServerPassword);
@@ -75,6 +78,7 @@ namespace KSPIRC
             {
                 config.host = wipHost;
                 config.port = Convert.ToInt32(wipPort);
+                config.secure = wipSecure;
                 config.nick = wipNick;
                 config.user = wipUser;
                 config.serverPassword = wipServerPassword;

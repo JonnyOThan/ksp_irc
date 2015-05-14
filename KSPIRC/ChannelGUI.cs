@@ -86,6 +86,9 @@ namespace KSPIRC
 
         internal bool highlightName;
         private string inputText = "";
+        private Rect inputTextRect;
+        private bool inputTextRectValid;
+        private ControlTypes inputLocks = ControlTypes.None;
         private List<ChannelMessageRenderer> backBuffer = new List<ChannelMessageRenderer>();
         private Vector2 backBufferScrollPosition;
         private Vector2 namesScrollPosition;
@@ -123,7 +126,7 @@ namespace KSPIRC
             highlightName = handle.StartsWith("#");
         }
 
-        public void draw()
+        public void draw(IRCChatWindow parent)
         {
             initStyles();
 
@@ -135,7 +138,7 @@ namespace KSPIRC
             GUILayout.BeginHorizontal();
             // TODO: get rid of weird margin/padding around drawTextArea() when drawNames() is called
             //       (the margin/padding is not there if it isn't called)
-            drawTextArea();
+            drawTextArea(parent);
 
             if (!namesHidden && handle.StartsWith("#"))
             {
@@ -153,7 +156,7 @@ namespace KSPIRC
 
             if (!keyDown && (Event.current.type == EventType.KeyDown))
             {
-                if (GUI.GetNameOfFocusedControl() == "input")
+                if (parent.isInputFocused())
                 {
                     string input = inputText.Trim();
                     if ((Event.current.keyCode == KeyCode.Return) || (Event.current.keyCode == KeyCode.KeypadEnter) ||
@@ -168,6 +171,7 @@ namespace KSPIRC
                         inputTextBeforeTabCompletion = null;
                         inputTextAfterTabCompletion = null;
                         lastTabCompletionUser = null;
+                        GUI.FocusControl("input");
                     }
                     else if ((Event.current.keyCode == KeyCode.Tab) || (Event.current.character == '\t'))
                     {
@@ -187,9 +191,8 @@ namespace KSPIRC
 
             if (Event.current.isKey &&
                 ((Event.current.keyCode == KeyCode.Tab) || (Event.current.character == '\t')) &&
-                (GUI.GetNameOfFocusedControl() == "input"))
+                (parent.isInputFocused()))
             {
-
                 TextEditor editor = (TextEditor)GUIUtility.GetStateObject(typeof(TextEditor), GUIUtility.keyboardControl);
                 editor.MoveTextEnd();
 
@@ -261,7 +264,7 @@ namespace KSPIRC
             }
         }
 
-        private void drawTextArea()
+        private void drawTextArea(IRCChatWindow parent)
         {
             GUILayout.BeginVertical();
             GUILayout.TextField(topic ?? "",
@@ -299,6 +302,29 @@ namespace KSPIRC
 							    GUILayout.Width(10),
 							    GUILayout.MaxWidth(10)
 						    });
+            if (Event.current.type == EventType.Repaint)
+            {
+                inputTextRect = GUILayoutUtility.GetLastRect();
+                inputTextRectValid = true;
+            }
+            if (inputTextRectValid && inputTextRect.Contains(Event.current.mousePosition))
+            {
+                // mouse is within the input text box
+                if (inputLocks != ControlTypes.All)
+                {
+                    inputLocks = InputLockManager.SetControlLock("kspirc");
+                }
+                if (!parent.isInputFocused())
+                {
+                    parent.forceInputFocused();
+                }
+            }
+            else if (inputLocks == ControlTypes.All)
+            {
+                InputLockManager.RemoveControlLock("kspirc");
+                inputLocks = ControlTypes.None;
+            }
+
             GUILayout.EndHorizontal();
             GUILayout.EndVertical();
         }

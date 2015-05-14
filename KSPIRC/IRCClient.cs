@@ -42,11 +42,14 @@ namespace KSPIRC
         public event Callback onDisconnected;
         public event Callback onConnectionFailed;
         public event Callback onConnectionAttemptsExceeded;
+        public event Callback onSSLConnected;
+        public event Callback onSSLCertificateError;
 
         private IRCConfig config;
 
         private TcpClient client;
-        private NetworkStream stream;
+        //private NetworkStream stream;
+        private Stream stream;
         private byte[] buffer = new byte[10240];
         private StringBuilder textBuffer = new StringBuilder();
         private bool tryReconnect = true;
@@ -64,7 +67,7 @@ namespace KSPIRC
             connect();
         }
 
-        public static bool PermissiveCertificateValidationCallback(object sender,
+        public bool PermissiveCertificateValidationCallback(object sender,
                                                      X509Certificate certificate,
                                                      X509Chain chain,
                                                      SslPolicyErrors sslPolicyErrors)
@@ -78,7 +81,12 @@ namespace KSPIRC
             Debug.LogError("Certificate error: [" + sslPolicyErrors + "]");
 
             // Do not allow this client to communicate with unauthenticated servers. 
-            return false;
+            // meh actually yes
+            if (onSSLCertificateError != null)
+            {
+                onSSLCertificateError();
+            }
+            return true;
         }
 
         private void connect()
@@ -104,17 +112,23 @@ namespace KSPIRC
 
             try
             {
+                //System.Security.Cryptography.Aes aesCrypto = new System.Security.Cryptography.AesCryptoServiceProvider();
+
                 client = new TcpClient();
                 client.Connect(config.host, config.port);
                 stream = client.GetStream();
-                //if (secure)
-                //{
-                //    SslStream sslStream = new SslStream(stream, 
-                //                                        false, 
-                //                                        new RemoteCertificateValidationCallback (PermissiveCertificateValidationCallback), null);
-                //    sslStream.AuthenticateAsClient(hostname);
-                //    stream = sslStream;
-                //}
+                if (config.secure)
+                {
+                    SslStream sslStream = new SslStream(stream, 
+                                                        false, 
+                                                        new RemoteCertificateValidationCallback (PermissiveCertificateValidationCallback), null);
+                    sslStream.AuthenticateAsClient(config.host);
+                    if (onSSLConnected != null)
+                    {
+                        onSSLConnected();
+                    }
+                    stream = sslStream;
+                }
 
                 if ((config.serverPassword != null) && (config.serverPassword != ""))
                 {
@@ -205,16 +219,14 @@ namespace KSPIRC
                     if (stream.CanRead)
                     {
                         //while (stream.DataAvailable)
-                        //{
-                        //    int numBytes = stream.Read(buffer, 0, buffer.Length);
-                        //    string text = Encoding.UTF8.GetString(buffer, 0, numBytes);
-                        //    textBuffer.Append(text);
-                        //}
                         while (client.Available > 0)
                         {
                             int numBytes = stream.Read(buffer, 0, buffer.Length);
-                            string text = Encoding.UTF8.GetString(buffer, 0, numBytes);
-                            textBuffer.Append(text);
+                            if (numBytes > 0)
+                            {
+                                string text = Encoding.UTF8.GetString(buffer, 0, numBytes);
+                                textBuffer.Append(text);
+                            }
                         }
                     }
                 }

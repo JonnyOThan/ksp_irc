@@ -77,10 +77,12 @@ namespace KSPIRC
             client.onCommandSent += (e) => logSendCommand(e.command);
             client.onConnect += () => chatWindow.addToChannel(NOTICE_CHANNEL_HANDLE, "*", "Connecting to server " + config.host + ":" + config.port + "...");
             client.onConnected += () => chatWindow.addToChannel(NOTICE_CHANNEL_HANDLE, "*", "Server connection established.");
+            client.onSSLConnected += () => chatWindow.addToChannel(NOTICE_CHANNEL_HANDLE, "*", "SSL Server connection established.");
             client.onDisconnected += () => chatWindow.addToChannel(NOTICE_CHANNEL_HANDLE, "*", "Disconnected from server.");
             client.onConnectionFailed += () => chatWindow.addToChannel(NOTICE_CHANNEL_HANDLE, "*", "Connection failed to server.");
             client.onConnectionAttemptsExceeded += () => chatWindow.addToChannel(NOTICE_CHANNEL_HANDLE, "*", "Connection attempts exceeded. Change config before retrying.");
-
+            client.onSSLCertificateError += () => chatWindow.addToChannel(NOTICE_CHANNEL_HANDLE, "*", "SSL Certificate error - use this server at your own risk.");
+            
             if ((config.host != null) && (config.port > 0) && (config.nick != ""))
             {
                 Debug.Log("Connecting to: " + config.host + ":" + config.port);

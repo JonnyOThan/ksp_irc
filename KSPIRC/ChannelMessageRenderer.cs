@@ -50,186 +50,141 @@ namespace KSPIRC
 
         internal ChannelMessageRenderer get(ChannelGUI gui, string sender, string text)
         {
-            //return new MultiLabelChannelMessageRenderer(sender, text);
-            return new RichTextLabelChannelMessageRenderer(gui, sender, text);
+            if (gui.config.forceSimpleRender)
+            {
+                return new PlainChannelMessageRenderer(gui, sender, text);
+            }
+            else
+            {
+                return new RichTextLabelChannelMessageRenderer(gui, sender, text);
+            }
         }
 
-        private class MultiLabelChannelMessageRenderer : ChannelMessageRenderer
+
+        private class PlainChannelMessageRenderer : ChannelMessageRenderer
         {
-            private class Element
-            {
-                private string text;
-                private readonly bool link;
+            private readonly string textClickifiedText;
+            private readonly bool highlighted;
 
-                internal Element(string text, bool link)
-                {
-                    this.text = text;
-                    this.link = link;
-                }
+            private bool stylesInitialized = false;
+            private float senderWidth;
 
-                internal void Append(string word)
-                {
-                    this.text += " " + word;
-                }
+            private Rect textRect;
 
-                internal float RenderWidth(ChannelGUI gui, string sender)
-                {
-                    bool highlighted = gui.highlightName && (sender != "*") && text.ToLower().Contains(gui.config.nick.ToLower());
-
-                    GUIStyle style = highlighted ? gui.textHighlightedStyle : gui.textStyle;
-
-                    return style.CalcSize(new GUIContent(text)).x;
-                }
-
-                internal void Render(ChannelGUI gui, string sender)
-                {
-                    bool highlighted = gui.highlightName && (sender != "*") && text.ToLower().Contains(gui.config.nick.ToLower());
-
-                    GUIStyle style = highlighted ? gui.textHighlightedStyle : gui.textStyle;
-
-                    if (link)
-                    {
-                        if (GUILayout.Button(text, gui.textLinkStyle))
-                        {
-                            handleClick(gui);
-                        }
-                    }
-                    else
-                    {
-                        GUILayout.Label(text, style);
-                    }
-                }
-
-                private void handleClick(ChannelGUI gui)
-                {
-                    gui.linkWindow.load(text);
-                }
-            }
-
-            private static bool appendNonLinks = false;
-
-            private float sourceTextWidth = -1;
-            private readonly Element[] elements;
-
-            internal MultiLabelChannelMessageRenderer(string sender, string text)
+            internal PlainChannelMessageRenderer(ChannelGUI gui, string sender, string text)
                 : base(sender, text)
             {
-                List<Element> tempElements = new List<Element>();
+                // use full markup for clickies
+                textClickifiedText = StripControlChars(text);
 
-                string[] words = text.Split(' ');
-                Element lastElement = null;
-                foreach (string word in words)
-                {
-                    string lower = word.ToLower();
-                    bool isLink = (lower.Contains("http://") || lower.Contains("https://"));
-
-                    if (appendNonLinks)
-                    {
-                        if (isLink || lastElement == null)
-                        {
-                            Element element = new Element(word, isLink);
-
-                            tempElements.Add(element);
-                            lastElement = (isLink ? null : element);
-                        }
-                        else
-                        {
-                            lastElement.Append(word);
-                        }
-                    }
-                    else
-                    {
-                        Element element = new Element(word, isLink);
-
-                        tempElements.Add(element);
-                    }
-                }
-
-                this.elements = tempElements.ToArray();
+                this.highlighted = gui.highlightName && (sender != "*") && this.sourceText.ToLower().Contains(gui.config.nick.ToLower());
             }
 
             internal override float SenderWidth(ChannelGUI gui)
             {
-                return gui.senderStyle.CalcSize(new GUIContent(sender)).x;
+                initStyles(gui);
+                return senderWidth;
+            }
+
+            internal override void Render(ChannelGUI gui, float spaceWidth, float maxNameWidth)
+            {
+                initStyles(gui);
+
+
+                GUIStyle style = (highlighted ? gui.textHighlightedStyle : gui.textStyle);
+
+                GUILayout.BeginHorizontal();
+                GUILayout.Label(sender, gui.senderStyle, GUILayout.Width(maxNameWidth), GUILayout.MaxWidth(maxNameWidth));
+                if (GUILayout.Button(sourceText, style))
+                {
+                    int textIndex = style.GetCursorStringIndex(textRect, new GUIContent(textClickifiedText), Event.current.mousePosition);
+                    handleClick(gui, textClickifiedText, textIndex);
+                }
+                if (Event.current.type == EventType.Repaint)
+                {
+                    textRect = GUILayoutUtility.GetLastRect();
+                }
+                GUILayout.EndHorizontal();
             }
 
             internal override void OnWindowResized()
             {
-                sourceTextWidth = -1.0f;
+
             }
 
-            private static float fudgeFactor = 60.0f;
-
-            internal override void Render(ChannelGUI gui, float spaceWidth, float maxNameWidth)
+            private void handleClick(ChannelGUI gui, string text, int index)
             {
-                GUILayout.BeginHorizontal();
-                GUILayout.Label(sender, gui.senderStyle, GUILayout.Width(maxNameWidth), GUILayout.MaxWidth(maxNameWidth));
-                if (gui.config.debug)
+                string word = GetWordAt(text, index);
+                if (word.StartsWith("http:") || word.StartsWith("https:"))
                 {
-                    GUILayout.Label(new GUIContent("" + sourceTextWidth), gui.senderStyle);
+                    gui.linkWindow.load(word);
                 }
-
-                GUILayout.BeginVertical();
-                if (gui.config.forceSimpleRender || sourceTextWidth < 0)
-                {
-                    startLine();
-                    GUILayout.Label(sourceText, gui.textStyle);
-                    endLine();
-                }
-                else
-                {
-                    RenderElements(gui, spaceWidth, sourceTextWidth);
-                }
-                GUILayout.EndVertical();
-                if (Event.current.type == EventType.Repaint)
-                {
-                    sourceTextWidth = GUILayoutUtility.GetLastRect().width - fudgeFactor;
-                }
-                GUILayout.EndHorizontal();
             }
 
-            private float RenderElements(ChannelGUI gui, float spaceWidth, float maxWidth)
+            private string GetWordAt(string text, int index)
             {
-                float longestLineWidth = 0;
-                float lineWidth = 0;
-                bool firstElement = true;
-                startLine();
-                foreach (Element element in elements)
+                // find the start of the word
+                int wordStartIndex = 0;
+                for (int ix = index - 1; ix >= 0; ix--)
                 {
-                    float elementWidth = element.RenderWidth(gui, sender);
-                    if (!firstElement && lineWidth + elementWidth > maxWidth)
+                    char aChar = text[ix];
+                    if (aChar < 0x20 || aChar == ' ' || aChar == '>')
                     {
-                        endLine();
-                        startLine();
-                        lineWidth = elementWidth;
-                    }
-                    else
-                    {
-                        lineWidth += elementWidth;
-                    }
-                    element.Render(gui, sender);
-
-                    GUILayout.Space(spaceWidth);
-                    firstElement = false;
-                    if (lineWidth > longestLineWidth)
-                    {
-                        longestLineWidth = lineWidth;
+                        wordStartIndex = ix + 1;
+                        break;
                     }
                 }
-                endLine();
 
-                return longestLineWidth;
+                int wordEndIndex = text.Length - 1;
+                for (int ix = index + 1; ix < text.Length; ix++)
+                {
+                    char aChar = text[ix];
+                    if (aChar < 0x20 || aChar == ' ' || aChar == '<' || aChar == ',')
+                    {
+                        wordEndIndex = ix - 1;
+                        break;
+                    }
+                }
+
+                return text.Substring(wordStartIndex, wordEndIndex - wordStartIndex + 1);
             }
 
-            private void startLine()
+            private void initStyles(ChannelGUI gui)
             {
-                GUILayout.BeginHorizontal();
+                if (!this.stylesInitialized)
+                {
+                    this.senderWidth = gui.senderStyle.CalcSize(new GUIContent(sender)).x;
+                    this.stylesInitialized = true;
+                }
             }
 
-            private void endLine()
+            private static string StripControlChars(string source)
             {
-                GUILayout.FlexibleSpace();
-                GUILayout.EndHorizontal();
+                string result = "";
+
+                for (int ix = 0; ix < source.Length; ix++)
+                {
+                    char aChar = source[ix];
+                    if (aChar >= 0x20)
+                    {
+                        result += aChar;
+                    }
+                }
+
+                return result;
+            }
+
+            private static bool GetNextChar(char[] source, out char value, ref int index)
+            {
+                if (index >= source.Length)
+                {
+                    value = (char)0;
+                    index = -1;
+                    return false;
+                }
+
+                value = source[index++];
+                return true;
             }
         }
 

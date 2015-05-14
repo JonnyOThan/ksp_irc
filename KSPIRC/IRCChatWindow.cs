@@ -120,7 +120,7 @@ namespace KSPIRC
 
             if (currentChannelGUI != null)
             {
-                currentChannelGUI.draw();
+                currentChannelGUI.draw(this);
             }
 
             GUILayout.EndVertical();
@@ -262,6 +262,7 @@ namespace KSPIRC
 
         public void addToChannel(string handle, string sender, string text, IRCCommand cmd = null)
         {
+            bool wasInputFocused = isInputFocused();
             ChannelGUI channelGUI = getChannelGUI(handle);
             channelGUI.addToBuffer(sender, text, cmd);
 
@@ -270,6 +271,11 @@ namespace KSPIRC
             {
                 currentChannelGUI = channelGUI;
                 currentChannelGUI.hidden = false;
+            }
+
+            if (wasInputFocused)
+            {
+                forceInputFocused();
             }
         }
 
@@ -343,6 +349,16 @@ namespace KSPIRC
                 channelGUI = channelGUIs[handle];
             }
             return channelGUI;
+        }
+
+        internal bool isInputFocused()
+        {
+            return GUI.GetNameOfFocusedControl() == "input";
+        }
+
+        internal void forceInputFocused()
+        {
+            GUI.FocusControl("input"); 
         }
 
         private void userCommandEntered(UserCommand cmd)
