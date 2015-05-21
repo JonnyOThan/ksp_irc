@@ -260,9 +260,23 @@ namespace KSPIRC
             currentChannelGUI = channelGUIs.Values.FirstOrDefault();
         }
 
+        internal class TextInputState
+        {
+            internal TextInputState(bool focused, int lastCursorPos, int lastSelectCursorPos)
+            {
+                this.focused = focused;
+                this.lastCursorPos = lastCursorPos;
+                this.lastSelectCursorPos = lastSelectCursorPos;
+            }
+
+            internal readonly bool focused;
+            internal readonly int lastCursorPos;  //set cursor position
+            internal readonly int lastSelectCursorPos;  //set selection cursor position
+        }
+
         public void addToChannel(string handle, string sender, string text, IRCCommand cmd = null)
         {
-            bool wasInputFocused = isInputFocused();
+            TextInputState textInputState = GetInputState();
             ChannelGUI channelGUI = getChannelGUI(handle);
             channelGUI.addToBuffer(sender, text, cmd);
 
@@ -273,9 +287,20 @@ namespace KSPIRC
                 currentChannelGUI.hidden = false;
             }
 
-            if (wasInputFocused)
+            RestoreInputFocus(textInputState);
+
+            if (config.tts)
             {
-                forceInputFocused();
+                speak(handle, sender, text, cmd);
+            }
+        }
+
+
+        private void speak(string handler, string sender, string text, IRCCommand cmd = null)
+        {
+            if (handler != "(Debug)")
+            {
+                SpeechLibWrapper.Speak(sender + " : " + text);
             }
         }
 
@@ -351,14 +376,39 @@ namespace KSPIRC
             return channelGUI;
         }
 
-        internal bool isInputFocused()
+        internal TextInputState GetInputState()
         {
-            return GUI.GetNameOfFocusedControl() == "input";
+            bool focused = (GUI.GetNameOfFocusedControl() == "input");
+            int lastCursorPos = -1;
+            int lastSelectCursorPos = -1;
+
+            if (focused)
+            {
+                TextEditor te = (TextEditor)GUIUtility.GetStateObject(typeof(TextEditor), GUIUtility.keyboardControl);
+                if (te != null)
+                {
+                    lastCursorPos = te.pos;  //set cursor position
+                    lastSelectCursorPos = te.selectPos;  //set selection cursor position
+                }
+            }
+
+            return new TextInputState(focused, lastCursorPos, lastSelectCursorPos);
         }
 
-        internal void forceInputFocused()
+
+        internal void RestoreInputFocus(TextInputState state)
         {
-            GUI.FocusControl("input"); 
+            if (state.focused)
+            {
+                GUI.FocusControl("input");
+                TextEditor te = (TextEditor)GUIUtility.GetStateObject(typeof(TextEditor), GUIUtility.keyboardControl);
+                if (te != null)
+                {
+                    //these two lines prevent a "select all" effect on the textfield which seems to be the default GUI.FocusControl behavior
+                    te.pos = state.lastCursorPos;  //set cursor position
+                    te.selectPos = state.lastSelectCursorPos;  //set selection cursor position
+                }
+            }
         }
 
         private void userCommandEntered(UserCommand cmd)

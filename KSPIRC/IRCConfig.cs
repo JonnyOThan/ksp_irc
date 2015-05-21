@@ -23,8 +23,36 @@ using UnityEngine;
 
 namespace KSPIRC
 {
+    internal class RectStorage
+    {
+        [Persistent]
+        internal float x, y, width, height;
+
+        public Rect Restore()
+        {
+            Rect ret = new Rect();
+            ret.x = x;
+            ret.y = y;
+            ret.width = width;
+            ret.height = height;
+
+            return ret;
+        }
+
+        public RectStorage Store(Rect source)
+        {
+            this.x = source.x;
+            this.y = source.y;
+            this.width = source.width;
+            this.height = source.height;
+
+            return this;
+        }
+    }
+
     class IRCConfig : IPersistenceLoad, IPersistenceSave
     {
+
         [Persistent]
         internal string host = "irc.esper.net";
 
@@ -50,10 +78,16 @@ namespace KSPIRC
         internal string channels = "";
 
         [Persistent]
+        internal bool tts = false;
+
+        [Persistent]
+        internal int ttsVolume = 100;
+
+        [Persistent]
         internal bool debug = false;
 
         [Persistent]
-        internal Dictionary<string, Rect> windowRects = new Dictionary<string,Rect>();
+        internal Dictionary<string, RectStorage> windowRects = new Dictionary<string, RectStorage>();
 
         private string settingsFile = KSPUtil.ApplicationRootPath + "GameData/KSPIRC/irc.cfg";
             
@@ -62,20 +96,31 @@ namespace KSPIRC
         {
             ConfigNode settingsConfigNode = ConfigNode.Load(settingsFile) ?? new ConfigNode();
             ConfigNode.LoadObjectFromConfig(this, settingsConfigNode);
-            
-            //host = settings.HasValue("host") ? settings.GetValue("host") : null;
-            //port = settings.HasValue("port") ? int.Parse(settings.GetValue("port")) : -1;
-            //secure = settings.HasValue("secure") ? bool.Parse(settings.GetValue("secure")) : false;
-            //user = settings.HasValue("user") ? settings.GetValue("user") : null;
-            //serverPassword = settings.HasValue("serverPassword") ? settings.GetValue("serverPassword") : null;
-            //nick = settings.HasValue("nick") ? settings.GetValue("nick") : "";
-            //debug = settings.HasValue("debug") ? bool.Parse(settings.GetValue("debug")) : false;
         }
 
         public void Save()
         {
             ConfigNode cnSaveWrapper = ConfigNode.CreateConfigFromObject(this);
             cnSaveWrapper.Save(settingsFile);
+        }
+
+        public void SetWindowRect(string name, Rect value)
+        {
+            RectStorage temp = new RectStorage();
+            temp.Store(value);
+            windowRects[name] = temp;
+        }
+
+        public bool GetWindowRect(string name, ref Rect destination)
+        {
+            RectStorage temp;
+            if (windowRects.TryGetValue(name, out temp))
+            {
+                destination = temp.Restore();
+                return true;
+            }
+
+            return false;
         }
 
         #region Interface Methods

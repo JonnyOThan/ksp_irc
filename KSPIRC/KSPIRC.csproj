@@ -34,6 +34,10 @@
     <Reference Include="Assembly-CSharp">
       <HintPath>..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Kerbal Space Program\KSP_Data\Managed\Assembly-CSharp.dll</HintPath>
     </Reference>
+    <Reference Include="Interop.SpeechLib">
+      <HintPath>etc\Interop.SpeechLib.dll</HintPath>
+      <EmbedInteropTypes>True</EmbedInteropTypes>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
@@ -59,6 +63,7 @@
     <Compile Include="IRCChatWindow.cs" />
     <Compile Include="IRCCommandEvent.cs" />
     <Compile Include="ConfigChangedEvent.cs" />
+    <Compile Include="SpeechLibWrapper.cs" />
     <Compile Include="ToolbarWrapper.cs" />
     <Compile Include="UserCommandEvent.cs" />
     <Compile Include="KSPIRCKSPAddonFixed.cs" />
@@ -71,13 +76,13 @@
     <Content Include="LICENSE.txt" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="etc\button-join.tga" />
-    <None Include="etc\button-message.tga" />
-    <None Include="etc\button-pm.tga" />
-    <None Include="etc\button-regular.tga" />
+    <None Include="etc\button-join.dds" />
+    <None Include="etc\button-message.dds" />
+    <None Include="etc\button-pm.dds" />
+    <None Include="etc\button-regular.dds" />
     <None Include="etc\button.psd" />
     <None Include="etc\KSPIRC.version" />
-    <None Include="etc\resize-cursor.tga" />
+    <None Include="etc\resize-cursor.dds" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>

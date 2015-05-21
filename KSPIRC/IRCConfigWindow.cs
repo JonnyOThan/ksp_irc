@@ -37,6 +37,8 @@ namespace KSPIRC
         private string wipServerPassword;
         private bool wipForceSimpleRender;
         private string wipChannels;
+        private bool wipTTS;
+        private int wipTTSVolume;
         private bool wipDebug;
 
         public event ConfigChangedHandler configChangedEvent;
@@ -53,6 +55,8 @@ namespace KSPIRC
             this.wipServerPassword = (config.serverPassword == null ? "" : config.serverPassword);
             this.wipForceSimpleRender = config.forceSimpleRender;
             this.wipChannels = config.channels;
+            this.wipTTS = config.tts;
+            this.wipTTSVolume = config.ttsVolume;
             this.wipDebug = config.debug;
 
 
@@ -72,6 +76,8 @@ namespace KSPIRC
             wipServerPassword = doConfigText("Password", wipServerPassword);
             wipForceSimpleRender = doConfigBool("Force Simple Render", wipForceSimpleRender);
             wipChannels = doConfigText("Auto Join Channels", wipChannels);
+            wipTTS = doConfigBool("Text-to-speech", wipTTS);
+            wipTTSVolume = doConfigRangedInt("TTS Volume", wipTTSVolume, 0, 100);
             wipDebug = doConfigBool("Debug", wipDebug);
 
             if (GUILayout.Button("Confirm"))
@@ -84,6 +90,8 @@ namespace KSPIRC
                 config.serverPassword = wipServerPassword;
                 config.forceSimpleRender = wipForceSimpleRender;
                 config.channels = wipChannels;
+                config.tts = wipTTS;
+                config.ttsVolume = wipTTSVolume;
                 config.debug = wipDebug;
 
                 if (configChangedEvent != null)
@@ -109,6 +117,15 @@ namespace KSPIRC
             return result;
         }
 
+        private int doConfigRangedInt(string label, int value, int min, int max)
+        {
+            GUILayout.BeginHorizontal();
+            GUILayout.Label(label);
+            int result = (int)Math.Round(GUILayout.HorizontalSlider(value, min, max));
+            GUILayout.EndHorizontal();
+
+            return result;
+        }
         private string doConfigText(string label, string content)
         {
             GUILayout.BeginHorizontal();

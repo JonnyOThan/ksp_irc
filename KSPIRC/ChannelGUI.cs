@@ -156,7 +156,8 @@ namespace KSPIRC
 
             if (!keyDown && (Event.current.type == EventType.KeyDown))
             {
-                if (parent.isInputFocused())
+
+                if (parent.GetInputState().focused)
                 {
                     string input = inputText.Trim();
                     if ((Event.current.keyCode == KeyCode.Return) || (Event.current.keyCode == KeyCode.KeypadEnter) ||
@@ -191,7 +192,7 @@ namespace KSPIRC
 
             if (Event.current.isKey &&
                 ((Event.current.keyCode == KeyCode.Tab) || (Event.current.character == '\t')) &&
-                (parent.isInputFocused()))
+                (parent.GetInputState().focused))
             {
                 TextEditor editor = (TextEditor)GUIUtility.GetStateObject(typeof(TextEditor), GUIUtility.keyboardControl);
                 editor.MoveTextEnd();
@@ -313,10 +314,6 @@ namespace KSPIRC
                 if (inputLocks != ControlTypes.All)
                 {
                     inputLocks = InputLockManager.SetControlLock("kspirc");
-                }
-                if (!parent.isInputFocused())
-                {
-                    parent.forceInputFocused();
                 }
             }
             else if (inputLocks == ControlTypes.All)

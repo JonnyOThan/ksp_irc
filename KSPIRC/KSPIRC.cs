@@ -254,6 +254,7 @@ namespace KSPIRC
         private void configChanged(ConfigChangedEvent e)
         {
             config.Save();
+            SpeechLibWrapper.SetVolume(config.ttsVolume);
             client.connect(config);
         }
 

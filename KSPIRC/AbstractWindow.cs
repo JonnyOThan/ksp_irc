@@ -67,7 +67,7 @@ namespace KSPIRC
             this.configName = configName;
             this.config = config;
 
-            if (!config.windowRects.TryGetValue(configName, out rect))
+            if (!config.GetWindowRect(configName, ref rect))
             {
                 rect = defaultRect;
             }
@@ -125,7 +125,7 @@ namespace KSPIRC
                 {
                     resizeHandleMouseDown = false;
 
-                    config.windowRects[configName] = rect;
+                    config.SetWindowRect(configName, rect);
                     config.Save();
                 }
                 else
