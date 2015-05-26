@@ -24,7 +24,7 @@ using UnityEngine;
 
 namespace KSPIRC
 {
-    [KSPIRCKSPAddonFixed(KSPAddon.Startup.MainMenu, true, typeof(KSPIRC))]
+    [KSPIRCKSPAddonFixed(KSPAddon.Startup.SpaceCentre, true, typeof(KSPIRC))]
     class KSPIRC : MonoBehaviour
     {
         private const string NOTICE_CHANNEL_HANDLE = "(Notice)";
@@ -93,7 +93,7 @@ namespace KSPIRC
             {
                 configWindow.hidden = false;
                 chatWindow.addToChannel("IRC Plugin", "*", "IRC plugin not configured, not connecting to IRC server.");
-                chatWindow.addToChannel("IRC Plugin", "*", "Edit irc.cfg and restart KSP.");
+                chatWindow.addToChannel("IRC Plugin", "*", "Edit config and confirm updates to connect.");
             }
 
             if (ToolbarManager.ToolbarAvailable)

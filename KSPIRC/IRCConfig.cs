@@ -23,33 +23,6 @@ using UnityEngine;
 
 namespace KSPIRC
 {
-    internal class RectStorage
-    {
-        [Persistent]
-        internal float x, y, width, height;
-
-        public Rect Restore()
-        {
-            Rect ret = new Rect();
-            ret.x = x;
-            ret.y = y;
-            ret.width = width;
-            ret.height = height;
-
-            return ret;
-        }
-
-        public RectStorage Store(Rect source)
-        {
-            this.x = source.x;
-            this.y = source.y;
-            this.width = source.width;
-            this.height = source.height;
-
-            return this;
-        }
-    }
-
     class IRCConfig : IPersistenceLoad, IPersistenceSave
     {
 
@@ -87,7 +60,7 @@ namespace KSPIRC
         internal bool debug = false;
 
         [Persistent]
-        internal Dictionary<string, RectStorage> windowRects = new Dictionary<string, RectStorage>();
+        internal Dictionary<string, Rect> windowRects = new Dictionary<string, Rect>();
 
         private string settingsFile = KSPUtil.ApplicationRootPath + "GameData/KSPIRC/irc.cfg";
             
@@ -96,27 +69,52 @@ namespace KSPIRC
         {
             ConfigNode settingsConfigNode = ConfigNode.Load(settingsFile) ?? new ConfigNode();
             ConfigNode.LoadObjectFromConfig(this, settingsConfigNode);
+
+            foreach (string rectKey in settingsConfigNode.GetValuesStartsWith("rect-"))
+            {
+                string value = settingsConfigNode.GetValue(rectKey);
+                string[] elements = value.Split(',');
+                if (elements.Length == 4)
+                {
+                    string name = value.Substring("rect-".Length);
+
+                    float left  = float.Parse(elements[0]);
+                    float top   = float.Parse(elements[1]);
+                    float width = float.Parse(elements[2]);
+                    float height = float.Parse(elements[0]);
+                     
+                    Rect rectValue = new Rect(left, top, width, height);
+
+                    this.windowRects[name] = rectValue;
+                }
+            }
         }
 
         public void Save()
         {
             ConfigNode cnSaveWrapper = ConfigNode.CreateConfigFromObject(this);
+
+            foreach (string name in windowRects.Keys)
+            {
+                Rect rect = windowRects[name];
+
+                string value = rect.xMin + "," + rect.yMin + "," + rect.width + "," + rect.height;
+
+                cnSaveWrapper.AddValue("rect-" + name, value);
+            }
+
             cnSaveWrapper.Save(settingsFile);
         }
 
         public void SetWindowRect(string name, Rect value)
         {
-            RectStorage temp = new RectStorage();
-            temp.Store(value);
-            windowRects[name] = temp;
+            windowRects[name] = value;
         }
 
         public bool GetWindowRect(string name, ref Rect destination)
         {
-            RectStorage temp;
-            if (windowRects.TryGetValue(name, out temp))
+            if (windowRects.TryGetValue(name, out destination))
             {
-                destination = temp.Restore();
                 return true;
             }
 

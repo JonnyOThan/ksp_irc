@@ -378,7 +378,7 @@ namespace KSPIRC
 
         internal TextInputState GetInputState()
         {
-            bool focused = (GUI.GetNameOfFocusedControl() == "input");
+            bool focused = (GUI.GetNameOfFocusedControl() == ChannelGUI.INPUT_CONTROL_NAME);
             int lastCursorPos = -1;
             int lastSelectCursorPos = -1;
 
@@ -400,7 +400,7 @@ namespace KSPIRC
         {
             if (state.focused)
             {
-                GUI.FocusControl("input");
+                GUI.FocusControl(ChannelGUI.INPUT_CONTROL_NAME);
                 TextEditor te = (TextEditor)GUIUtility.GetStateObject(typeof(TextEditor), GUIUtility.keyboardControl);
                 if (te != null)
                 {

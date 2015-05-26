@@ -25,6 +25,8 @@ namespace KSPIRC
 {
     class ChannelGUI
     {
+        internal static readonly string INPUT_CONTROL_NAME = "kspirc_input";
+
         private const int MAX_BACK_BUFFER_LINES = 250;
         private const float MAX_NAME_WIDTH = 150;
 
@@ -88,6 +90,7 @@ namespace KSPIRC
         private string inputText = "";
         private Rect inputTextRect;
         private bool inputTextRectValid;
+        private bool textInputNeedsSelectionClearing;
         private ControlTypes inputLocks = ControlTypes.None;
         private List<ChannelMessageRenderer> backBuffer = new List<ChannelMessageRenderer>();
         private Vector2 backBufferScrollPosition;
@@ -172,7 +175,7 @@ namespace KSPIRC
                         inputTextBeforeTabCompletion = null;
                         inputTextAfterTabCompletion = null;
                         lastTabCompletionUser = null;
-                        GUI.FocusControl("input");
+                        GUI.FocusControl(INPUT_CONTROL_NAME);
                     }
                     else if ((Event.current.keyCode == KeyCode.Tab) || (Event.current.character == '\t'))
                     {
@@ -290,7 +293,7 @@ namespace KSPIRC
                 nicknameWidth = GUILayoutUtility.GetLastRect().width;
             }
 
-            GUI.SetNextControlName("input");
+            GUI.SetNextControlName(INPUT_CONTROL_NAME);
             inputText = GUILayout.TextField(inputText,
                 ((bufferWidth > 0) && (nicknameWidth > 0)) ?
                     new GUILayoutOption[] {
@@ -314,6 +317,24 @@ namespace KSPIRC
                 if (inputLocks != ControlTypes.All)
                 {
                     inputLocks = InputLockManager.SetControlLock("kspirc");
+                }
+
+                if (textInputNeedsSelectionClearing == true)
+                {
+                    TextEditor te = (TextEditor)GUIUtility.GetStateObject(typeof(TextEditor), GUIUtility.keyboardControl);
+                    if (te != null)
+                    {
+                        string selection = te.SelectedText;
+                        te.MoveTextEnd();
+                        te.SelectNone();
+                        textInputNeedsSelectionClearing = false;
+                    }
+                }
+
+                if (GUI.GetNameOfFocusedControl() != ChannelGUI.INPUT_CONTROL_NAME)
+                {
+                    GUI.FocusControl(INPUT_CONTROL_NAME);
+                    textInputNeedsSelectionClearing = true;
                 }
             }
             else if (inputLocks == ControlTypes.All)
