@@ -70,22 +70,24 @@ namespace KSPIRC
             ConfigNode settingsConfigNode = ConfigNode.Load(settingsFile) ?? new ConfigNode();
             ConfigNode.LoadObjectFromConfig(this, settingsConfigNode);
 
-            foreach (string rectKey in settingsConfigNode.GetValuesStartsWith("rect-"))
+            foreach (ConfigNode.Value node in settingsConfigNode.values)
             {
-                string value = settingsConfigNode.GetValue(rectKey);
-                string[] elements = value.Split(',');
-                if (elements.Length == 4)
+                if (node.name.StartsWith("rect-"))
                 {
-                    string name = value.Substring("rect-".Length);
+                    string[] elements = node.value.Split(',');
+                    if (elements.Length == 4)
+                    {
+                        string name = node.name.Substring("rect-".Length);
 
-                    float left  = float.Parse(elements[0]);
-                    float top   = float.Parse(elements[1]);
-                    float width = float.Parse(elements[2]);
-                    float height = float.Parse(elements[0]);
-                     
-                    Rect rectValue = new Rect(left, top, width, height);
+                        float left = float.Parse(elements[0]);
+                        float top = float.Parse(elements[1]);
+                        float width = float.Parse(elements[2]);
+                        float height = float.Parse(elements[0]);
 
-                    this.windowRects[name] = rectValue;
+                        Rect rectValue = new Rect(left, top, width, height);
+
+                        this.windowRects[name] = rectValue;
+                    }
                 }
             }
         }
