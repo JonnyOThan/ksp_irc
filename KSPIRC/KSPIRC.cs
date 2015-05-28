@@ -24,8 +24,46 @@ using UnityEngine;
 
 namespace KSPIRC
 {
-    [KSPIRCKSPAddonFixed(KSPAddon.Startup.SpaceCentre, true, typeof(KSPIRC))]
-    class KSPIRC : MonoBehaviour
+    [KSPIRCKSPAddonFixed(KSPAddon.Startup.SpaceCentre, true, typeof(AddScenarioModules))]
+    public class AddScenarioModules : MonoBehaviour
+    {
+        void Start()
+        {
+            GameObject.DontDestroyOnLoad(this);
+            
+            var game = HighLogic.CurrentGame;
+
+            ProtoScenarioModule psm = game.scenarios.Find(s => s.moduleName == typeof(KSPIRC).Name);
+            if (psm == null)
+            {
+                psm = game.AddProtoScenarioModule(typeof(KSPIRC),
+                    GameScenes.SPACECENTER,
+                    GameScenes.TRACKSTATION,
+                    GameScenes.FLIGHT,
+                    GameScenes.EDITOR);
+            }
+            else
+            {
+                GameScenes[] scenes = new GameScenes[]
+                {
+                    GameScenes.SPACECENTER,
+                    GameScenes.TRACKSTATION,
+                    GameScenes.FLIGHT,
+                    GameScenes.EDITOR
+                };
+
+                foreach (GameScenes scene in scenes)
+                {
+                    if (!psm.targetScenes.Any(s => s == scene))
+                    {
+                        psm.targetScenes.Add(scene);
+                    }
+                }
+            }
+        }
+    }
+
+    class KSPIRC : ScenarioModule
     {
         private const string NOTICE_CHANNEL_HANDLE = "(Notice)";
 
@@ -130,6 +168,8 @@ namespace KSPIRC
 
         public void OnDestroy()
         {
+            Debug.Log("KSPIRC::OnDestroy");
+
             if (windowButton != null)
             {
                 windowButton.Destroy();
@@ -153,6 +193,17 @@ namespace KSPIRC
         {
             chatWindow.hidden = true;
         }
+
+        public override void OnSave(ConfigNode gameNode)
+        {
+            // not saving to persistence file, but this is a handy way to ensure
+            // we keep config save up to date, particularly with window locations
+            this.chatWindow.UpdateConfig();
+            this.configWindow.UpdateConfig();
+            this.linkWindow.UpdateConfig();
+            this.config.Save();
+        }
+
         #region gui
 
         public void OnGUI()

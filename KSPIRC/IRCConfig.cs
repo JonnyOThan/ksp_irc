@@ -82,7 +82,7 @@ namespace KSPIRC
                         float left = float.Parse(elements[0]);
                         float top = float.Parse(elements[1]);
                         float width = float.Parse(elements[2]);
-                        float height = float.Parse(elements[0]);
+                        float height = float.Parse(elements[3]);
 
                         Rect rectValue = new Rect(left, top, width, height);
 

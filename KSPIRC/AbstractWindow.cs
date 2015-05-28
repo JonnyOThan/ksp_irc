@@ -125,7 +125,7 @@ namespace KSPIRC
                 {
                     resizeHandleMouseDown = false;
 
-                    config.SetWindowRect(configName, rect);
+                    UpdateConfig();
                     config.Save();
                 }
                 else
@@ -140,6 +140,11 @@ namespace KSPIRC
             }
 
             return resizeHandleMouseDown;
+        }
+
+        internal void UpdateConfig()
+        {
+            config.SetWindowRect(configName, rect);
         }
 
         public virtual void update()
