@@ -24,47 +24,11 @@ using UnityEngine;
 
 namespace KSPIRC
 {
-    [KSPIRCKSPAddonFixed(KSPAddon.Startup.SpaceCentre, true, typeof(AddScenarioModules))]
-    public class AddScenarioModules : MonoBehaviour
+    [KSPIRCKSPAddonFixed(KSPAddon.Startup.SpaceCentre, true, typeof(KSPIRC))]
+    public class KSPIRC : MonoBehaviour
     {
-        void Start()
-        {
-            GameObject.DontDestroyOnLoad(this);
-            
-            var game = HighLogic.CurrentGame;
+        internal static KSPIRC instance;
 
-            ProtoScenarioModule psm = game.scenarios.Find(s => s.moduleName == typeof(KSPIRC).Name);
-            if (psm == null)
-            {
-                psm = game.AddProtoScenarioModule(typeof(KSPIRC),
-                    GameScenes.SPACECENTER,
-                    GameScenes.TRACKSTATION,
-                    GameScenes.FLIGHT,
-                    GameScenes.EDITOR);
-            }
-            else
-            {
-                GameScenes[] scenes = new GameScenes[]
-                {
-                    GameScenes.SPACECENTER,
-                    GameScenes.TRACKSTATION,
-                    GameScenes.FLIGHT,
-                    GameScenes.EDITOR
-                };
-
-                foreach (GameScenes scene in scenes)
-                {
-                    if (!psm.targetScenes.Any(s => s == scene))
-                    {
-                        psm.targetScenes.Add(scene);
-                    }
-                }
-            }
-        }
-    }
-
-    class KSPIRC : ScenarioModule
-    {
         private const string NOTICE_CHANNEL_HANDLE = "(Notice)";
 
         // debugging
@@ -89,6 +53,8 @@ namespace KSPIRC
 
         KSPIRC()
         {
+            instance = this;
+
             GameObject.DontDestroyOnLoad(this);
 
             version = this.GetType().Assembly.GetName().Version.ToString();
@@ -166,6 +132,41 @@ namespace KSPIRC
             }
         }
 
+        void Start()
+        {
+            GameObject.DontDestroyOnLoad(this);
+            
+            var game = HighLogic.CurrentGame;
+
+            ProtoScenarioModule psm = game.scenarios.Find(s => s.moduleName == typeof(KSPIRCScenarioModule).Name);
+            if (psm == null)
+            {
+                psm = game.AddProtoScenarioModule(typeof(KSPIRCScenarioModule),
+                    GameScenes.SPACECENTER,
+                    GameScenes.TRACKSTATION,
+                    GameScenes.FLIGHT,
+                    GameScenes.EDITOR);
+            }
+            else
+            {
+                GameScenes[] scenes = new GameScenes[]
+                {
+                    GameScenes.SPACECENTER,
+                    GameScenes.TRACKSTATION,
+                    GameScenes.FLIGHT,
+                    GameScenes.EDITOR
+                };
+
+                foreach (GameScenes scene in scenes)
+                {
+                    if (!psm.targetScenes.Any(s => s == scene))
+                    {
+                        psm.targetScenes.Add(scene);
+                    }
+                }
+            }
+        }
+
         public void OnDestroy()
         {
             Debug.Log("KSPIRC::OnDestroy");
@@ -194,7 +195,7 @@ namespace KSPIRC
             chatWindow.hidden = true;
         }
 
-        public override void OnSave(ConfigNode gameNode)
+        internal void OnSave()
         {
             // not saving to persistence file, but this is a handy way to ensure
             // we keep config save up to date, particularly with window locations
@@ -611,5 +612,16 @@ namespace KSPIRC
         }
 
         #endregion
+    }
+    
+    class KSPIRCScenarioModule : ScenarioModule
+    {
+        internal void OnSave(ConfigNode gameNode)
+        {
+            if (KSPIRC.instance != null)
+            {
+                KSPIRC.instance.OnSave();
+            }
+        }
     }
 }
