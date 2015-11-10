@@ -32,7 +32,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Assembly-CSharp">
-      <HintPath>..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Kerbal Space Program\KSP_Data\Managed\Assembly-CSharp.dll</HintPath>
+      <HintPath>C:\Games\Steam\SteamApps\common\Kerbal Space Program\KSP_Data\Managed\Assembly-CSharp.dll</HintPath>
     </Reference>
     <Reference Include="Interop.SpeechLib">
       <HintPath>etc\Interop.SpeechLib.dll</HintPath>
@@ -45,7 +45,7 @@
     <Reference Include="System.Data" />
     <Reference Include="System.Xml" />
     <Reference Include="UnityEngine">
-      <HintPath>..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Kerbal Space Program\KSP_Data\Managed\UnityEngine.dll</HintPath>
+      <HintPath>C:\Games\Steam\SteamApps\common\Kerbal Space Program\KSP_Data\Managed\UnityEngine.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
@@ -94,7 +94,9 @@ DEL "$(TargetDir)UnityEngine.dll"
 
 xcopy /s /f /y $(ProjectDir)etc $(TargetDir)GameData\$(ProjectName)\
 
-call "C:\Program Files (x86)\Unity\Editor\Data\MonoBleedingEdge\bin\cli.bat"  "C:\Program Files (x86)\Unity\Editor\Data\MonoBleedingEdge\lib\mono\4.0\pdb2mdb.exe" "$(TargetDir)$(TargetFileName)"
+
+rem call "C:\Program Files (x86)\Unity\Editor\Data\MonoBleedingEdge\bin\cli.bat"  "C:\Program Files (x86)\Unity\Editor\Data\MonoBleedingEdge\lib\mono\4.0\pdb2mdb.exe" "$(TargetDir)$(TargetFileName)"
+call "C:\Program Files (x86)\Mono\bin\pdb2mdb.bat" "$(TargetDir)$(TargetFileName)"
 
 dir
 copy /y $(ProjectDir)CHANGES.txt GameData\$(ProjectName)\
@@ -110,7 +112,9 @@ IF EXIST "$(ProjectDir)..\..\Timmers_KSP\KSP_TEST" xcopy /s /f /y $(TargetDir)\G
 
 IF EXIST "$(ProjectDir)..\..\Timmers_KSP\KSP_TEST_STRIPPED" xcopy /s /f /y $(TargetDir)\GameData "$(ProjectDir)..\..\Timmers_KSP\KSP_TEST_STRIPPED\GameData\"
 
-IF EXIST "C:\Program Files (x86)\Steam\steamapps\common\Kerbal Space Program" xcopy /s /f /y $(TargetDir)GameData "C:\Program Files (x86)\Steam\steamapps\common\Kerbal Space Program\GameData\"
+rem IF EXIST "C:\Program Files (x86)\Steam\steamapps\common\Kerbal Space Program" xcopy /s /f /y $(TargetDir)GameData "C:\Program Files (x86)\Steam\steamapps\common\Kerbal Space Program\GameData\"
+
+IF EXIST "C:\Games\Steam\SteamApps\common\Kerbal Space Program" xcopy /s /f /y $(TargetDir)GameData "C:\Games\Steam\SteamApps\common\Kerbal Space Program\GameData"
 </PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
