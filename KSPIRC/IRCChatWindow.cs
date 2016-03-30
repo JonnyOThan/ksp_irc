@@ -387,8 +387,8 @@ namespace KSPIRC
                 TextEditor te = (TextEditor)GUIUtility.GetStateObject(typeof(TextEditor), GUIUtility.keyboardControl);
                 if (te != null)
                 {
-                    lastCursorPos = te.pos;  //set cursor position
-                    lastSelectCursorPos = te.selectPos;  //set selection cursor position
+                    lastCursorPos = te.cursorIndex;  //set cursor position
+                    lastSelectCursorPos = te.selectIndex;  //set selection cursor position
                 }
             }
 
@@ -405,8 +405,8 @@ namespace KSPIRC
                 if (te != null)
                 {
                     //these two lines prevent a "select all" effect on the textfield which seems to be the default GUI.FocusControl behavior
-                    te.pos = state.lastCursorPos;  //set cursor position
-                    te.selectPos = state.lastSelectCursorPos;  //set selection cursor position
+                    te.cursorIndex = state.lastCursorPos;  //set cursor position
+                    te.selectIndex = state.lastSelectCursorPos;  //set selection cursor position
                 }
             }
         }
