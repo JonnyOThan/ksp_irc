@@ -36,6 +36,9 @@ namespace KSPIRC
         internal bool secure = false;
 
         [Persistent]
+        internal bool twitch = false;
+
+        [Persistent]
         internal string user = null;
 
         [Persistent]
@@ -70,8 +73,10 @@ namespace KSPIRC
             ConfigNode settingsConfigNode = ConfigNode.Load(settingsFile) ?? new ConfigNode();
             ConfigNode.LoadObjectFromConfig(this, settingsConfigNode);
 
-            foreach (ConfigNode.Value node in settingsConfigNode.values)
+            for (int ix = 0; ix < settingsConfigNode.values.Count; ix++)
             {
+                ConfigNode.Value node = settingsConfigNode.values[ix];
+
                 if (node.name.StartsWith("rect-"))
                 {
                     string[] elements = node.value.Split(',');
@@ -95,6 +100,7 @@ namespace KSPIRC
         public void Save()
         {
             ConfigNode cnSaveWrapper = ConfigNode.CreateConfigFromObject(this);
+
 
             foreach (string name in windowRects.Keys)
             {

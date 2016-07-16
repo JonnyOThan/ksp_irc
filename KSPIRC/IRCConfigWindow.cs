@@ -29,6 +29,7 @@ namespace KSPIRC
         private readonly IRCConfig config;
         private GUIStyle buttonActiveStyle;
 
+        private Boolean wipTwitch;
         private string wipHost;
         private string wipPort;
         private bool wipSecure;
@@ -47,6 +48,7 @@ namespace KSPIRC
             : base("config", config, new Rect(Screen.width / 6, Screen.height / 6, 300, 200))
         {
             this.config = config;
+            this.wipTwitch = config.twitch;
             this.wipHost = (config.host == null ? "" : config.host);
             this.wipPort = Convert.ToString(config.port);
             this.wipSecure = config.secure;
@@ -68,12 +70,17 @@ namespace KSPIRC
             initStyles();
 
             GUILayout.BeginVertical();
-            wipHost = doConfigText("Host", wipHost);
-            wipPort = doConfigText("Port", wipPort);
-            wipSecure = doConfigBool("Secure", wipSecure);
+            wipTwitch = doConfigBool("Twitch", wipTwitch);
+            if (!wipTwitch)
+            {
+                wipHost = doConfigText("Host", wipHost);
+                wipPort = doConfigText("Port", wipPort);
+                wipSecure = doConfigBool("Secure", wipSecure);
+            }
+
             wipNick = doConfigText("Nick", wipNick);
             wipUser = doConfigText("User", wipUser);
-            wipServerPassword = doConfigText("Password", wipServerPassword);
+            wipServerPassword = doConfigPassword("Password", wipServerPassword);
             wipForceSimpleRender = doConfigBool("Force Simple Render", wipForceSimpleRender);
             wipChannels = doConfigText("Auto Join Channels", wipChannels);
             wipTTS = doConfigBool("Text-to-speech", wipTTS);
@@ -82,6 +89,7 @@ namespace KSPIRC
 
             if (GUILayout.Button("Confirm"))
             {
+                config.twitch = wipTwitch;
                 config.host = wipHost;
                 config.port = Convert.ToInt32(wipPort);
                 config.secure = wipSecure;
@@ -131,6 +139,16 @@ namespace KSPIRC
             GUILayout.BeginHorizontal();
             GUILayout.Label(label);
             string result = GUILayout.TextField(content);
+            GUILayout.EndHorizontal();
+
+            return result;
+        }
+
+        private string doConfigPassword(string label, string content)
+        {
+            GUILayout.BeginHorizontal();
+            GUILayout.Label(label);
+            string result = GUILayout.PasswordField(content, '*');
             GUILayout.EndHorizontal();
 
             return result;

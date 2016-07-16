@@ -353,16 +353,20 @@ namespace KSPIRC
                 GUI.skin.horizontalScrollbar, GUI.skin.verticalScrollbar, GUI.skin.textArea);
 
             float maxNameWidth = -1;
-            foreach (ChannelMessageRenderer entry in backBuffer)
+            for (int ix = 0; ix < backBuffer.Count; ix++)
             {
+                ChannelMessageRenderer entry = backBuffer[ix];
+
                 float width = entry.SenderWidth(this);
                 maxNameWidth = Mathf.Min(Mathf.Max(width, maxNameWidth), MAX_NAME_WIDTH);
             }
 
             bool lastSeenLineDrawn = false;
             int idx = 0;
-            foreach (ChannelMessageRenderer entry in backBuffer)
+            for (int ix = 0; ix < backBuffer.Count; ix++)
             {
+                ChannelMessageRenderer entry = backBuffer[ix];
+
                 // draw "last seen" indicator
                 if (!lastSeenLineDrawn && (idx == unseenIdx))
                 {
@@ -391,8 +395,9 @@ namespace KSPIRC
             namesScrollPosition = GUILayout.BeginScrollView(namesScrollPosition, false, true,
                 GUI.skin.horizontalScrollbar, GUI.skin.verticalScrollbar, GUI.skin.textArea);
 
-            foreach (User user in users)
+            for (int ix = 0; ix < users.Count; ix++)
             {
+                User user = users[ix];
                 GUILayout.Label(user.ToString(), nameStyle);
             }
             GUILayout.EndScrollView();
@@ -496,9 +501,13 @@ namespace KSPIRC
 
         public void rename(string oldName, string newName)
         {
-            foreach (User user in users.Where(u => u.name == oldName))
+            for (int ix = 0; ix < users.Count; ix++)
             {
-                user.name = newName;
+                User user = users[ix];
+                if (user.name == oldName)
+                {
+                    user.name = newName;
+                }
             }
             sortNames(true);
         }
@@ -510,11 +519,15 @@ namespace KSPIRC
 
         public void changeUserMode(string name, string mode)
         {
-            foreach (User user in users.Where(u => u.name == name))
+            for (int ix = 0; ix < users.Count; ix++)
             {
-                if (mode == "+o")
+                User user = users[ix];
+                if (user.name == name)
                 {
-                    user.op = true;
+                    if (mode == "+o")
+                    {
+                        user.op = true;
+                    }
                 }
                 else if (mode == "-o")
                 {
@@ -555,8 +568,10 @@ namespace KSPIRC
             nicknameWidth = -1;
             bufferWidth = -1;
 
-            foreach (ChannelMessageRenderer entry in backBuffer)
+            for (int ix = 0; ix < backBuffer.Count; ix++)
             {
+                ChannelMessageRenderer entry = backBuffer[ix];
+
                 entry.OnWindowResized();
             }
         }

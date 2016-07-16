@@ -38,6 +38,7 @@ namespace KSPIRC
             set
             {
                 config_ = value;
+
                 foreach (ChannelGUI channelGUI in channelGUIs.Values)
                 {
                     channelGUI.config = config;
@@ -105,7 +106,7 @@ namespace KSPIRC
             this.config = config;
 
             hidden = true;
-            title = "IRC - " + version + " - " + config.host + ":" + config.port;
+            title = "IRC - " + version + " - " + (config.twitch ? "Twitch" : config.host + ":" + config.port);
 
             onResized += windowResized;
             onVisibleToggled += (e) => windowVisibleToggled(e.visible);
@@ -190,8 +191,10 @@ namespace KSPIRC
         private void drawButtons()
         {
             GUILayout.BeginHorizontal();
-            foreach (string handle in handles)
+            for (int ix = 0; ix < handles.Count; ix++)
             {
+                string handle = handles[ix];
+
                 ChannelGUI channelGUI = getChannelGUI(handle);
                 GUIStyle buttonStyle;
                 if (channelGUI.Equals(currentChannelGUI))

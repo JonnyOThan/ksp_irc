@@ -158,8 +158,10 @@ namespace KSPIRC
                     GameScenes.EDITOR
                 };
 
-                foreach (GameScenes scene in scenes)
+                for (int ix = 0; ix < scenes.Length; ix++)
                 {
+                    GameScenes scene = scenes[ix];
+
                     if (!psm.targetScenes.Any(s => s == scene))
                     {
                         psm.targetScenes.Add(scene);
@@ -332,6 +334,7 @@ namespace KSPIRC
             serverCommandHandlers.Add("332", serverCommandTopic);
             serverCommandHandlers.Add("353", serverCommandNameReply);
             serverCommandHandlers.Add("366", serverCommandEndOfNames);
+            serverCommandHandlers.Add("376", serverCommandEndOfMotd);
         }
 
         private void handleServerCommand(IRCCommand cmd)
@@ -346,6 +349,14 @@ namespace KSPIRC
             if (!unknown)
             {
                 serverCommandHandlers[cmd.command](cmd);
+            }
+        }
+
+        private void serverCommandEndOfMotd(IRCCommand cmd)
+        {
+            if (config.twitch)
+            {
+                client.send(new IRCCommand(null, "CAP", "REQ", "twitch.tv/membership"));
             }
         }
 
@@ -444,8 +455,12 @@ namespace KSPIRC
             {
                 text += " (" + cmd.parameters[0] + ")";
             }
-            foreach (string handle in chatWindow.getChannelsContainingName(cmd.shortPrefix))
+
+            string[] channelsContainingName = chatWindow.getChannelsContainingName(cmd.shortPrefix);
+            for (int ix = 0; ix < channelsContainingName.Length; ix++)
             {
+                string handle = channelsContainingName[ix];
+
                 chatWindow.addToChannel(handle, "*", text, cmd);
                 chatWindow.removeChannelName(handle, cmd.shortPrefix);
             }
@@ -455,8 +470,11 @@ namespace KSPIRC
         {
             string oldName = cmd.shortPrefix;
             string newName = cmd.parameters.Last();
-            foreach (string handle in chatWindow.getChannelsContainingName(oldName))
+
+            string[] channelsContainingName = chatWindow.getChannelsContainingName(oldName);
+            for (int ix = 0; ix < channelsContainingName.Length; ix++)
             {
+                string handle = channelsContainingName[ix];
                 chatWindow.renameInChannel(handle, oldName, newName);
                 chatWindow.addToChannel(handle, "*", oldName + " is now known as " + newName);
             }

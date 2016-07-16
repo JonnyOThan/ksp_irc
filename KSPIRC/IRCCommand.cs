@@ -97,8 +97,12 @@ namespace KSPIRC
                 }
                 string command = groups["command"].Value.ToUpper();
                 List<string> parameters = new List<string>();
-                foreach (Capture capture in groups["param"].Captures)
+
+                CaptureCollection captures = groups["param"].Captures;
+                for (int ix = 0; ix < captures.Count; ix++)
                 {
+                    Capture capture = captures[ix];
+
                     string parameter = capture.Value;
                     if (parameter != "")
                     {

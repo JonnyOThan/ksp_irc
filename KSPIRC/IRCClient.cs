@@ -102,7 +102,7 @@ namespace KSPIRC
 
             if (connectionAttempts++ > MAX_CONNECT_RETRIES)
             {
-                Debug.LogWarning("Too many failed attempts to connect to host[" + config.host + "] port[" + config.port + "]");
+                Debug.LogWarning("Too many failed attempts to connect to " + (config.twitch ? "Twitch" : "host[" + config.host + "] port[" + config.port + "]"));
                 if (onConnectionAttemptsExceeded != null)
                 {
                     onConnectionAttemptsExceeded();
@@ -115,9 +115,16 @@ namespace KSPIRC
                 //System.Security.Cryptography.Aes aesCrypto = new System.Security.Cryptography.AesCryptoServiceProvider();
 
                 client = new TcpClient();
-                client.Connect(config.host, config.port);
+                if (config.twitch)
+                {
+                    client.Connect("irc.chat.twitch.tv", 443);
+                }
+                else
+                {
+                    client.Connect(config.host, config.port);
+                }
                 stream = client.GetStream();
-                if (config.secure)
+                if (config.secure || config.twitch)
                 {
                     SslStream sslStream = new SslStream(stream, 
                                                         false, 
@@ -136,6 +143,7 @@ namespace KSPIRC
                 }
                 send(new IRCCommand(null, "NICK", config.nick));
                 send(new IRCCommand(null, "USER", (String.IsNullOrEmpty(config.user) ? config.nick : config.user), "8", "*", config.nick));
+
 
                 connectTime = DateTime.UtcNow.Ticks / 10000;
                 connected = true;
@@ -344,8 +352,9 @@ namespace KSPIRC
         private void autoJoinChannels()
         {
             string[] autoJoinChannels = config.channels.Split(' ');
-            foreach (string channel in autoJoinChannels)
+            for (int ix = 0; ix < autoJoinChannels.Length; ix++)
             {
+                string channel = autoJoinChannels[ix];
                 if (channel.StartsWith("#"))
                 {
                     send("JOIN " + channel);
